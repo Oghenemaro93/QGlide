@@ -45,6 +45,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    # Local apps
+    'core',
     # 3rd party apps
     'drf_yasg',
     'corsheaders',
@@ -207,3 +209,5 @@ SECURE_SSL_REDIRECT = \
     config('SECURE_SSL_REDIRECT', '0').lower() in ['true', 't', '1']
 if SECURE_SSL_REDIRECT:
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+AUTH_USER_MODEL = 'core.User'
