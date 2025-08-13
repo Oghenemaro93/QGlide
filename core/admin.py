@@ -8,7 +8,10 @@ from import_export.admin import ImportExportModelAdmin
 from . import resources
 from .models import (
 
+    ConstantTable,
     User,
+    VehicleRegistration,
+    VehicleSettings,
 )
 # Register your models here.
 
@@ -84,5 +87,37 @@ class UserResourceAdmin(ImportExportModelAdmin):
     )
 
 
+class ConstantTableResourceAdmin(ImportExportModelAdmin):
+    resource_class = resources.ConstantTableResource
+
+    list_display = (
+        "id",
+        "allow_registration",
+        "allow_vehicle_registration",
+        "created_at",
+        "updated_at",
+    )
+
+
+class VehicleSettingsResourceAdmin(ImportExportModelAdmin):
+    resource_class = resources.VehicleSettingsResource
+
+    search_fields = ["vehicle_type"]
+    list_filter = ["is_active"]
+    def get_list_display(self, request):
+        return [field.name for field in self.model._meta.concrete_fields]
+
+
+class VehicleRegistrationResourceAdmin(ImportExportModelAdmin):
+    resource_class = resources.VehicleRegistrationResource
+
+    search_fields = ["user__phone", "vehicle_make", "vehicle_model", "vehicle_plate_number"]
+    list_filter = ["is_approved", "is_active", "is_deleted"]
+    def get_list_display(self, request):
+        return [field.name for field in self.model._meta.concrete_fields]
+
 
 admin.site.register(User, UserResourceAdmin)
+admin.site.register(ConstantTable, ConstantTableResourceAdmin)
+admin.site.register(VehicleSettings, VehicleSettingsResourceAdmin)
+admin.site.register(VehicleRegistration, VehicleRegistrationResourceAdmin)
