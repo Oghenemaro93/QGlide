@@ -289,3 +289,64 @@ class VehicleRegistrationSerializer(ModelCustomSerializer):
             attrs["previous_vehicle"] = previous_vehicle
 
         return attrs
+    
+
+class FetchVehicleTypeSerializer(ModelCustomSerializer):
+    """Serializers Fetch Brand for all Users."""
+
+    class Meta:
+        model = VehicleSettings
+        fields = (
+            "id",
+            "name",
+            "base_fare",
+            "base_distance",
+            "waiting_charge",
+            "is_active",
+        )
+
+
+class FetchVehicleRegistrationSerializer(ModelCustomSerializer):
+    """Serializers Fetch Brand for all Users."""
+
+    class Meta:
+        model = VehicleRegistration
+        fields = (
+            "id",
+            "user",
+            "vehicle_make",
+            "vehichle_type",
+            "vehicle_model",
+            "vehicle_plate_number",
+            "vehicle_color",
+            "vehicle_year",
+            "vehicle_seat_number",
+            "is_approved",
+            "is_active",
+            "is_deleted",
+            "created_at",
+        )
+
+
+class FetchVehicleRegistrationAdminSerializer(ModelCustomSerializer):
+    """Serializers Fetch Brand for all Users."""
+
+    class Meta:
+        model = VehicleRegistration
+        fields = (
+            "id",
+            "user",
+            "vehicle_make",
+            "vehichle_type",
+            "vehicle_model",
+            "vehicle_plate_number",
+            "vehicle_color",
+            "vehicle_year",
+            "vehicle_seat_number",
+            "is_approved",
+            "is_active",
+            "is_deleted",
+            "created_at",
+            "deleted_at",
+            "updated_at",
+        )
