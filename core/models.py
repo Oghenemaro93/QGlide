@@ -7,6 +7,7 @@ import uuid
 from django.contrib.auth import authenticate
 from django.contrib.auth.hashers import check_password, make_password
 from django.contrib.auth.models import AbstractUser, BaseUserManager
+from django.core.validators import MinValueValidator
 from django.db import models
 from django.utils.translation import gettext as _
 
@@ -85,6 +86,7 @@ class User(AbstractUser, BaseModel):
     is_verified = models.BooleanField(default=False)
     is_suspended = models.BooleanField(default=False)
     is_deleted = models.BooleanField(default=False)
+    deleted_at = models.DateTimeField(null=True, blank=True)
 
     USERNAME_FIELD = "phone_number"
     # REQUIRED_FIELDS = ["phone_number"]
@@ -117,14 +119,6 @@ class User(AbstractUser, BaseModel):
     def user_exist(cls, phone_number):
         try:
             user = cls.objects.get(phone_number=phone_number)
-        except cls.DoesNotExist:
-            return None
-        return user
-
-    @classmethod
-    def user_phone_exist(cls, phone):
-        try:
-            user = cls.objects.get(phone_number=phone)
         except cls.DoesNotExist:
             return None
         return user
@@ -241,3 +235,67 @@ class User(AbstractUser, BaseModel):
             return None
         else:
             return "234" + formatted_num
+        
+
+class ConstantTable(BaseModel):
+    allow_registration = models.BooleanField(default=True)
+    allow_vehicle_registration = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "CONSTANT TABLE"
+        verbose_name_plural = "CONSTANT TABLES"
+
+    @classmethod
+    def constant_table_instance(cls):
+        """
+        This function always returns an instance of the constant table
+        """
+        # Try to retrieve the cached data
+        constant_instance = cls.objects.last()
+        if constant_instance is None:
+            # If the cache is empty, create a new instance
+            constant_instance = cls.objects.create()
+        return constant_instance
+    
+
+class VehicleSettings(BaseModel):
+    name = models.CharField(max_length=255, null=True, blank=True)
+    base_fare = models.FloatField(
+        default=0.0,
+        validators=[MinValueValidator(0.0)],
+    )
+    base_distance = models.FloatField(
+        default=0.0,
+        validators=[MinValueValidator(0.0)],
+    )
+    waiting_charge = models.FloatField(
+        default=0.0,
+        validators=[MinValueValidator(0.0)],
+    )
+    is_active = models.BooleanField(default=False)
+
+    class Meta:
+        verbose_name = "VEHICLE SETTING"
+        verbose_name_plural = "VEHICLE SETTINGS"
+
+
+class VehicleRegistration(BaseModel):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="vehicle_owner", null=True, blank=True
+    )
+    vehicle_make = models.CharField(max_length=255, null=True, blank=True)
+    vehichle_type = models.ForeignKey(
+        VehicleSettings, on_delete=models.CASCADE, related_name="vehicle_type", null=True, blank=True
+    )
+    vehicle_model = models.CharField(max_length=255, null=True, blank=True)
+    vehicle_plate_number = models.CharField(max_length=255, null=True, blank=True)
+    vehicle_color = models.CharField(max_length=255, null=True, blank=True)
+    vehicle_year = models.CharField(max_length=255, null=True, blank=True)
+    vehicle_seat_number = models.PositiveIntegerField(null=True, blank=True)
+    is_approved = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=False)
+    is_deleted = models.BooleanField(default=False)
+    deleted_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "VEHICLE REGISTRATION"
+        verbose_name_plural = "VEHICLE REGISTRATIONS"
