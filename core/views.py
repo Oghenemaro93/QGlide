@@ -192,3 +192,14 @@ class VehicleRegistrationAdminAPIView(generics.ListAPIView):
             "results": serializer.data,
         }
         return Response(response_data, status=status.HTTP_200_OK)
+    
+class VerifyUserAPIView(generics.ListAPIView):
+    permission_classes = [IsAuthenticated, UserIsActive]
+    def post(self, request):
+
+        user_id = request.user.id
+        is_driver = request.user.user_type
+        return Response({
+            'user_id': user_id,
+            'is_driver': True if is_driver == "RIDER" else False
+        }, status=status.HTTP_200_OK)

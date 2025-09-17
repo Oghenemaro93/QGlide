@@ -108,14 +108,14 @@ class CustomTokenObtainSerializer(TokenObtainPairSerializer):
             And if the user does not exist at all we raise an exception with a different error message.
             Thus stopping the execution right there.
         """
-        if not authenticate_kwargs["password"].digits():
-            raise CustomSerializerError(
-                {"status": False, "password": "password must contain only digits."}
-            )
-        if not len(authenticate_kwargs["password"]) == 6:
-            raise CustomSerializerError(
-                {"status": False, "password": f"password must be 6 digits."}
-            )
+        # if not authenticate_kwargs["password"].digit():
+        #     raise CustomSerializerError(
+        #         {"status": False, "password": "password must contain only digits."}
+        #     )
+        # if not len(authenticate_kwargs["password"]) == 6:
+        #     raise CustomSerializerError(
+        #         {"status": False, "password": f"password must be 6 digits."}
+        #     )
         try:
             user = User.objects.get(phone_number=authenticate_kwargs["phone_number"])
             authenticate_kwargs["phone_number"] = user.phone_number
@@ -173,7 +173,7 @@ class CustomTokenObtainSerializer(TokenObtainPairSerializer):
 
 class RegistrationSerializer(ModelCustomSerializer):
     """Serializers registration requests and creates a new user."""
-
+    confirm_password = serializers.CharField(required=True)
     class Meta:
         model = User
         fields = (
@@ -181,6 +181,7 @@ class RegistrationSerializer(ModelCustomSerializer):
             "last_name",
             "phone_number",
             "password",
+            "email",
             "ip_address",
             "referral_code",
             "confirm_password",
@@ -189,6 +190,7 @@ class RegistrationSerializer(ModelCustomSerializer):
             "first_name": {"required": True},
             "last_name": {"required": True},
             "phone_number": {"required": True},
+            "email": {"required": True},
             "user_type": {"required": True},
         }
 
@@ -201,6 +203,7 @@ class RegistrationSerializer(ModelCustomSerializer):
         password = attrs.get("password")
         confirm_password = attrs.get("confirm_password")
         phone_number = attrs.get("phone_number")
+        email = attrs.get("email")
 
         if not password.digits():
             raise CustomSerializerError(
@@ -221,6 +224,14 @@ class RegistrationSerializer(ModelCustomSerializer):
         if User.user_exist(phone_number=phone_number):
             raise CustomSerializerError(
                 {"status": False, "phone_number": f"{phone_number} is associated with another account"}
+            )
+        if User.user_email_deleted(email=email):
+            raise CustomSerializerError(
+                {"status": False, "email": f"{email} has been used, try another email"}
+            )
+        if User.user_email_exist(email=email):
+            raise CustomSerializerError(
+                {"status": False, "email": f"{email} is associated with another account"}
             )
         # correct_phone_number = User.format_phone_number(phone_number)
         # if correct_phone_number is None:
