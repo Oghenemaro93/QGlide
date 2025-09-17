@@ -15,6 +15,11 @@ from core.helpers.func import generate_verification_code
 
 
 # Create your models here.
+VEHICLE_STATUS = (
+    ("ONLINE", "Online"),
+    ("OFFLINE", "Offline"),
+)
+
 
 class BaseModel(models.Model):
     """Base model for reuse.
@@ -73,6 +78,7 @@ class User(AbstractUser, BaseModel):
     username = models.CharField(max_length=255, blank=False, null=True, unique=True)
     # email = models.EmailField(unique=True)
     phone_number = models.CharField(max_length=255, unique=True)
+    email = models.EmailField(unique=True)
     first_name = models.CharField(max_length=255)
     last_name = models.CharField(max_length=255)
     ip_address = models.CharField(max_length=255, blank=True, null=True)
@@ -82,6 +88,7 @@ class User(AbstractUser, BaseModel):
     user_type = models.CharField(
         max_length=255, blank=True, null=True, choices=USER_TYPE, default="USER"
     )
+    rating = models.PositiveIntegerField(default=0)
     terms_and_conditions = models.BooleanField(default=True)
     is_verified = models.BooleanField(default=False)
     is_suspended = models.BooleanField(default=False)
@@ -114,11 +121,30 @@ class User(AbstractUser, BaseModel):
             return None
         else:
             return user
+        
+    @classmethod
+    def user_email_deleted(cls, email):
+        try:
+            user = cls.objects.get(email=email)
+        except cls.DoesNotExist:
+            return None
+        if user.is_deleted:
+            return None
+        else:
+            return user
 
     @classmethod
     def user_exist(cls, phone_number):
         try:
             user = cls.objects.get(phone_number=phone_number)
+        except cls.DoesNotExist:
+            return None
+        return user
+    
+    @classmethod
+    def user_email_exist(cls, email):
+        try:
+            user = cls.objects.get(email=email)
         except cls.DoesNotExist:
             return None
         return user
@@ -291,6 +317,7 @@ class VehicleRegistration(BaseModel):
     vehicle_color = models.CharField(max_length=255, null=True, blank=True)
     vehicle_year = models.CharField(max_length=255, null=True, blank=True)
     vehicle_seat_number = models.PositiveIntegerField(null=True, blank=True)
+    vehicle_status = models.CharField(max_length=50, choices=VEHICLE_STATUS, default="NONE")
     is_approved = models.BooleanField(default=False)
     is_active = models.BooleanField(default=False)
     is_deleted = models.BooleanField(default=False)
