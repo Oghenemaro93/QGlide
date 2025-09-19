@@ -10,6 +10,7 @@ from rest_framework.decorators import APIView
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from core.helpers.mailersend import MailerSendApi
 from core.models import VehicleRegistration, VehicleSettings
 from core.permissions import UserIsActive
 from core.serializer import FetchVehicleRegistrationAdminSerializer, FetchVehicleRegistrationSerializer, FetchVehicleTypeSerializer, RegistrationSerializer, VehicleRegistrationSerializer
@@ -35,11 +36,17 @@ class RegistrationAPIView(APIView):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
         un_hashed_otp_code = serializer.validated_data.get("un_hashed_otp_code")
+        first_name = serializer.validated_data.get("first_name")
+        last_name = serializer.validated_data.get("last_name")
+        email = serializer.validated_data.get("email")
         print(un_hashed_otp_code)
         del serializer.validated_data["un_hashed_otp_code"]
         serializer.save()
-        phone_number = serializer.validated_data.get("phone_number")
 
+        full_name = f"{first_name} {last_name}"
+        phone_number = serializer.validated_data.get("phone_number")
+        
+        MailerSendApi.new_user_verify_email(recipient=email, name=full_name, email_verification=un_hashed_otp_code)
         # send_user_welcome_email(email=email, otp_code=un_hashed_otp_code)
         return Response(
             {
