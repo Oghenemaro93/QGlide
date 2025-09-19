@@ -205,18 +205,6 @@ class RegistrationSerializer(ModelCustomSerializer):
         phone_number = attrs.get("phone_number")
         email = attrs.get("email")
 
-        if not password.digits():
-            raise CustomSerializerError(
-                {"status": False, "password": "password must contain only digits."}
-            )
-        if not len(password) == 6:
-            raise CustomSerializerError(
-                {"status": False, "password": f"password must be 6 digits."}
-            )
-        if password != confirm_password:
-            raise CustomSerializerError(
-                {"status": False, "password": "passwords do not match."}
-            )
         if User.user_deleted(phone_number=phone_number):
             raise CustomSerializerError(
                 {"status": False, "phone_number": f"{phone_number} has been used, try another phone_number"}
@@ -232,6 +220,11 @@ class RegistrationSerializer(ModelCustomSerializer):
         if User.user_email_exist(email=email):
             raise CustomSerializerError(
                 {"status": False, "email": f"{email} is associated with another account"}
+            )
+        
+        if password != confirm_password:
+            raise CustomSerializerError(
+                {"status": False, "password": "passwords do not match."}
             )
         # correct_phone_number = User.format_phone_number(phone_number)
         # if correct_phone_number is None:
