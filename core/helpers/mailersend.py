@@ -4,7 +4,7 @@ from django.conf import settings
 class MailerSendApi:
 
     @classmethod
-    def new_user_verify_email(recipient:str, name:str, email_verification:str):
+    def new_user_verify_email(cls, recipient:str, name:str, email_verification:str):
         
         mailer = emails.NewEmail(settings.MAILERSEND_API_KEY)
 
