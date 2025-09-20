@@ -10,6 +10,7 @@ from rest_framework.decorators import APIView
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from core.helpers.brevor import BervorApi
 from core.helpers.mailersend import MailerSendApi
 from core.models import VehicleRegistration, VehicleSettings
 from core.permissions import UserIsActive
@@ -46,7 +47,7 @@ class RegistrationAPIView(APIView):
         full_name = f"{first_name} {last_name}"
         phone_number = serializer.validated_data.get("phone_number")
         
-        MailerSendApi.new_user_verify_email(recipient=email, name=full_name, email_verification=un_hashed_otp_code)
+        BervorApi.new_user_verify_email(recipient=email, name=full_name, email_verification=un_hashed_otp_code)
         # send_user_welcome_email(email=email, otp_code=un_hashed_otp_code)
         return Response(
             {
