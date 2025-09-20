@@ -201,7 +201,8 @@ class VehicleRegistrationAdminAPIView(generics.ListAPIView):
             "results": serializer.data,
         }
         return Response(response_data, status=status.HTTP_200_OK)
-    
+
+
 class VerifyUserAPIView(generics.ListAPIView):
     permission_classes = [IsAuthenticated, UserIsActive]
     def post(self, request):
@@ -212,6 +213,7 @@ class VerifyUserAPIView(generics.ListAPIView):
             'user_id': user_id,
             'is_driver': True if is_driver == "RIDER" else False
         }, status=status.HTTP_200_OK)
+
 
 class VerificationAPIView(APIView):
     """Verify a user."""
@@ -251,6 +253,7 @@ class VerificationAPIView(APIView):
             {"message": "verification successful"}, status=status.HTTP_200_OK
         )
     
+
 class ResendVerificationCodeAPIView(APIView):
     """Resend a user verification code."""
 
@@ -288,7 +291,8 @@ class ResendVerificationCodeAPIView(APIView):
             },
             status=status.HTTP_201_CREATED,
         )
-    
+
+
 class GetUserProfileAPIView(APIView):
     permission_classes = [IsAuthenticated, UserIsActive]
     serializer_class = UserProfileSerializer
@@ -311,6 +315,7 @@ class UpdateUserProfileAPIView(APIView):
         return Response(
             {"message": "user profile successfully"}, status=status.HTTP_200_OK
         )
+
 
 class ForgotPasswordAPIView(APIView):
     """Send user forgotten password otp coode"""
@@ -349,6 +354,7 @@ class ForgotPasswordAPIView(APIView):
             status=status.HTTP_201_CREATED,
         )
 
+
 class ChangeForgotPasswordAPIView(APIView):
     """Change user forgotten password."""
 
@@ -361,6 +367,7 @@ class ChangeForgotPasswordAPIView(APIView):
         return Response(
             {"message": "password changed successful"}, status=status.HTTP_200_OK
         )
+
 
 class ChangeUserPasswordAPIView(APIView):
     permission_classes = [IsAuthenticated, UserIsActive]
