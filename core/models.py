@@ -88,6 +88,7 @@ class User(AbstractUser, BaseModel):
     user_type = models.CharField(
         max_length=255, blank=True, null=True, choices=USER_TYPE, default="USER"
     )
+    date_of_birth = models.DateField(null=True, blank=True)
     rating = models.PositiveIntegerField(default=0)
     terms_and_conditions = models.BooleanField(default=True)
     is_verified = models.BooleanField(default=False)
@@ -262,6 +263,16 @@ class User(AbstractUser, BaseModel):
         else:
             return "234" + formatted_num
         
+    @classmethod
+    def is_email_verified(cls, email):
+        user = cls.objects.filter(email=email).first()
+        if user:
+            if user.is_verified:
+                return True
+            else:
+                return False
+        else:
+            return False
 
 class ConstantTable(BaseModel):
     allow_registration = models.BooleanField(default=True)
