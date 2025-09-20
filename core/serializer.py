@@ -166,9 +166,10 @@ class CustomTokenObtainSerializer(TokenObtainPairSerializer):
         this_user = {
             "access": all_data["access"],
             "refresh": all_data["refresh"],
-            "user_type": user.first_name,
-            "first_name": user.last_name,
-            "last_name": user.phone_number,
+            "user_type": user.user_type,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "phone_number": user.phone_number,
             "email": user.email,
         }
         return this_user
