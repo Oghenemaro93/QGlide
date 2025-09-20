@@ -355,6 +355,7 @@ class FetchVehicleRegistrationAdminSerializer(ModelCustomSerializer):
             "updated_at",
         )
 
+
 class VerificationCodeSerializer(CustomSerializer):
     email = serializers.EmailField(required=True)
     otp_code = serializers.CharField(max_length=4, min_length=4, required=True)
@@ -364,6 +365,7 @@ class VerificationCodeSerializer(CustomSerializer):
         attrs["email"] = email
         return attrs
     
+
 class ResendVerificationCodeSerializer(CustomSerializer):
     email = serializers.EmailField(required=True)
 
@@ -372,12 +374,14 @@ class ResendVerificationCodeSerializer(CustomSerializer):
         attrs["email"] = email
         return attrs
 
+
 class UserProfileSerializer(serializers.ModelSerializer):
     """Serializers update user profile"""
 
     class Meta:
         model = User
         fields = ("email", "first_name", "last_name", "phone_number", "date_of_birth")
+
 
 class ForgotPasswordSerializer(CustomSerializer):
     email = serializers.EmailField(required=True)
@@ -387,6 +391,7 @@ class ForgotPasswordSerializer(CustomSerializer):
         attrs["email"] = email
         return attrs
     
+
 class ChangeForgotPasswordSerializer(CustomSerializer):
     email = serializers.EmailField(required=True)
     otp_code = serializers.CharField(max_length=4, min_length=4, required=True)
@@ -430,7 +435,8 @@ class ChangeForgotPasswordSerializer(CustomSerializer):
             raise CustomSerializerError({"status": False, "message": f"{e}"})
         attrs["email"] = email
         return attrs
-    
+
+
 class ChangeUserPasswordSerializer(CustomSerializer):
     old_password = serializers.CharField(
         style={"input_type": "password"}, write_only=True
