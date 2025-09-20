@@ -11,10 +11,11 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from core.helpers.brevor import BervorApi
+from core.helpers.func import generate_verification_code
 from core.helpers.mailersend import MailerSendApi
-from core.models import VehicleRegistration, VehicleSettings
+from core.models import User, VehicleRegistration, VehicleSettings
 from core.permissions import UserIsActive
-from core.serializer import FetchVehicleRegistrationAdminSerializer, FetchVehicleRegistrationSerializer, FetchVehicleTypeSerializer, RegistrationSerializer, VehicleRegistrationSerializer
+from core.serializer import ChangeForgotPasswordSerializer, ChangeUserPasswordSerializer, FetchVehicleRegistrationAdminSerializer, FetchVehicleRegistrationSerializer, FetchVehicleTypeSerializer, ForgotPasswordSerializer, RegistrationSerializer, ResendVerificationCodeSerializer, UserProfileSerializer, VehicleRegistrationSerializer, VerificationCodeSerializer
 
 # Create your views here.
 
@@ -211,3 +212,166 @@ class VerifyUserAPIView(generics.ListAPIView):
             'user_id': user_id,
             'is_driver': True if is_driver == "RIDER" else False
         }, status=status.HTTP_200_OK)
+
+class VerificationAPIView(APIView):
+    """Verify a user."""
+
+    serializer_class = VerificationCodeSerializer
+
+    @swagger_auto_schema(request_body=VerificationCodeSerializer)
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        verification_code = serializer.validated_data.get("otp_code")
+        email = serializer.validated_data.get("email")
+
+        verified_user = User.is_email_verified(email=email)
+        if verified_user:
+            return Response(
+                {"status": False, "message": f"{email} already exists"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        user = User.user_email_exist(email=email)
+        if user is None:
+            return Response(
+                {"status": False, "message": "User does not exist"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        valid_otp_code = User.check_otp(user=user, otp_code=verification_code)
+        if valid_otp_code is False:
+            return Response(
+                {"status": False, "message": "Invalid otp code"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        user.is_verified = True
+        user.save()
+        return Response(
+            {"message": "verification successful"}, status=status.HTTP_200_OK
+        )
+    
+class ResendVerificationCodeAPIView(APIView):
+    """Resend a user verification code."""
+
+    serializer_class = ResendVerificationCodeSerializer
+
+    @swagger_auto_schema(request_body=ResendVerificationCodeSerializer)
+    def post(self, request):
+        """Handle HTTP POST request."""
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        email = serializer.validated_data.get("email")
+
+        user = User.user_email_exist(email)
+        if user is None:
+            return Response(
+                {"status": False, "message": "User does not exist"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if user.is_verified:
+            return Response(
+                {"status": False, "message": "User has already been verified"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        email = serializer.validated_data.get("email")
+        verification_code = generate_verification_code()
+        User.hash_otp(otp_code=verification_code, user=user)
+        # print(verification_code)
+        BervorApi.new_user_verify_email(recipient=email, name=user.full_name, email_verification=verification_code)
+        return Response(
+            {
+                "status": True,
+                "message": "Verification code has been sent to your email",
+            },
+            status=status.HTTP_201_CREATED,
+        )
+    
+class GetUserProfileAPIView(APIView):
+    permission_classes = [IsAuthenticated, UserIsActive]
+    serializer_class = UserProfileSerializer
+
+    def get(self, request):
+        serializer = self.serializer_class(request.user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+class UpdateUserProfileAPIView(APIView):
+    permission_classes = [IsAuthenticated, UserIsActive]
+    serializer_class = UserProfileSerializer
+
+    @swagger_auto_schema(request_body=UserProfileSerializer)
+    def put(self, request):
+        serializer = self.serializer_class(
+            request.user, data=request.data, partial=True
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(
+            {"message": "user profile successfully"}, status=status.HTTP_200_OK
+        )
+
+class ForgotPasswordAPIView(APIView):
+    """Send user forgotten password otp coode"""
+
+    serializer_class = ForgotPasswordSerializer
+    @swagger_auto_schema(request_body=ForgotPasswordSerializer)
+    def post(self, request):
+        """Handle HTTP POST request."""
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        email = serializer.validated_data.get("email")
+
+        user = User.user_email_exist(email)
+        if user is None:
+            return Response(
+                {"status": False, "message": "User does not exist"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if user.is_verified is False:
+            return Response(
+                {"status": False, "message": "User is not verified"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        email = serializer.validated_data.get("email")
+        verification_code = generate_verification_code()
+        User.hash_otp(otp_code=verification_code, user=user)
+        # print(verification_code)
+        BervorApi.new_user_verify_email(recipient=email, name=user.full_name, email_verification=verification_code)
+        return Response(
+            {
+                "status": True,
+                "message": "Verification code has been sent to your email",
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+class ChangeForgotPasswordAPIView(APIView):
+    """Change user forgotten password."""
+
+    serializer_class = ChangeForgotPasswordSerializer
+
+    @swagger_auto_schema(request_body=ChangeForgotPasswordSerializer)
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        return Response(
+            {"message": "password changed successful"}, status=status.HTTP_200_OK
+        )
+
+class ChangeUserPasswordAPIView(APIView):
+    permission_classes = [IsAuthenticated, UserIsActive]
+    serializer_class = ChangeUserPasswordSerializer
+
+    @swagger_auto_schema(request_body=ChangeUserPasswordSerializer)
+    def put(self, request):
+        serializer = self.serializer_class(
+            data=request.data, context={"user": request.user}
+        )
+        serializer.is_valid(raise_exception=True)
+        return Response(
+            {"message": "password updated successfully"}, status=status.HTTP_200_OK
+        )
