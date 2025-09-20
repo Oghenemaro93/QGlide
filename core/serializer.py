@@ -354,3 +354,109 @@ class FetchVehicleRegistrationAdminSerializer(ModelCustomSerializer):
             "deleted_at",
             "updated_at",
         )
+
+
+class VerificationCodeSerializer(CustomSerializer):
+    email = serializers.EmailField(required=True)
+    otp_code = serializers.CharField(max_length=4, min_length=4, required=True)
+
+    def validate(self, attrs):
+        email = attrs.get("email").lower()
+        attrs["email"] = email
+        return attrs
+    
+
+class ResendVerificationCodeSerializer(CustomSerializer):
+    email = serializers.EmailField(required=True)
+
+    def validate(self, attrs):
+        email = attrs.get("email").lower()
+        attrs["email"] = email
+        return attrs
+
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    """Serializers update user profile"""
+
+    class Meta:
+        model = User
+        fields = ("email", "first_name", "last_name", "phone_number", "date_of_birth")
+
+
+class ForgotPasswordSerializer(CustomSerializer):
+    email = serializers.EmailField(required=True)
+
+    def validate(self, attrs):
+        email = attrs.get("email").lower()
+        attrs["email"] = email
+        return attrs
+    
+
+class ChangeForgotPasswordSerializer(CustomSerializer):
+    email = serializers.EmailField(required=True)
+    otp_code = serializers.CharField(max_length=4, min_length=4, required=True)
+    password = serializers.CharField(style={"input_type": "password"}, write_only=True)
+    confirm_password = serializers.CharField(
+        style={"input_type": "password"}, write_only=True
+    )
+
+    def validate(self, attrs):
+        email = attrs.get("email").lower()
+        password = attrs.get("password")
+        confirm_password = attrs.get("confirm_password")
+        otp_code = attrs.get("otp_code")
+
+        user = User.user_email_deleted(email=email)
+        if user is None:
+            raise CustomSerializerError(
+                {"status": False, "email": f"{email} does not exist"}
+            )
+
+        if User.is_email_verified(email=email) is False:
+            raise CustomSerializerError(
+                {"status": False, "message": "user has not been verified"}
+            )
+
+        if password != confirm_password:
+            raise CustomSerializerError(
+                {"status": False, "password": "passwords do not match!"}
+            )
+
+        valid_otp_code = User.check_otp(user=user, otp_code=otp_code)
+        if valid_otp_code is False:
+            raise CustomSerializerError(
+                {"status": False, "message": "Invalid otp code"}
+            )
+
+        try:
+            with transaction.atomic():
+                User.create_user_password(user=user, password=password)
+        except Exception as e:
+            raise CustomSerializerError({"status": False, "message": f"{e}"})
+        attrs["email"] = email
+        return attrs
+
+
+class ChangeUserPasswordSerializer(CustomSerializer):
+    old_password = serializers.CharField(
+        style={"input_type": "password"}, write_only=True
+    )
+    new_password = serializers.CharField(
+        style={"input_type": "password"}, write_only=True
+    )
+
+    def validate(self, attrs):
+        old_password = attrs.get("old_password")
+        new_password = attrs.get("new_password")
+        user = self.context.get("user")
+        check_password = User.check_user_password(user=user, password=old_password)
+        if not check_password:
+            raise CustomSerializerError(
+                {"status": False, "old_password": "old password is incorrect!"}
+            )
+        try:
+            with transaction.atomic():
+                User.create_user_password(user=user, password=new_password)
+        except Exception as e:
+            raise CustomSerializerError({"status": False, "message": f"{e}"})
+        return attrs
