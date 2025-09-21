@@ -1,14 +1,10 @@
 from django.db import models
 
-from core.models import BaseModel, User, VehicleRegistration
+from core.models import RIDE_TYPE, VEHICLE_TYPE, BaseModel, User, VehicleRegistration
 from django.core.validators import MinValueValidator
 
 
 # Create your models here.
-RIDE_TYPE = (
-    ("RIDES", "Rides"),
-    ("PACKAGE_DELIVERY", "Package Delivery"),
-)
 
 RIDE_STATUS = (
     ("PENDING", "Pending"),
@@ -22,9 +18,9 @@ RIDE_STATUS = (
 )
 
 RIDE_DISTANCE_UNIT = (
-    ("MILE", "Mi"),
-    ("KILOMETER", "KM"),
-    ("METER", "M"),
+    ("MILES", "Mi"),
+    ("KILOMETERS", "KM"),
+    ("METERS", "M"),
 )
 
 CANCELLED_BY = (
@@ -61,7 +57,7 @@ class Ride(BaseModel):
 
     user_ride_end_longitude = models.FloatField(null=True, blank=True)
     user_ride_end_latitude = models.FloatField(null=True, blank=True)
-    user_location_address = models.CharField(max_length=255, null=True, blank=True)
+    user_ride_end_address = models.CharField(max_length=255, null=True, blank=True)
 
     driver_ride_end_longitude = models.FloatField(null=True, blank=True)
     driver_ride_end_latitude = models.FloatField(null=True, blank=True)
@@ -73,12 +69,13 @@ class Ride(BaseModel):
     vehicle = models.ForeignKey(
         VehicleRegistration, on_delete=models.CASCADE, related_name="ride_vehicle", null=True, blank=True
     )
+    ride_type = models.CharField(max_length=255, blank=True, null=True, choices=RIDE_TYPE)
+    vehicle_type = models.CharField(max_length=50, blank=True, null=True, choices=VEHICLE_TYPE)
 
     ride_start_time = models.DateTimeField(null=True, blank=True)
     ride_end_time = models.DateTimeField(null=True, blank=True)
     ride_duration = models.DurationField(null=True, blank=True)
 
-    ride_type = models.CharField(max_length=50, choices=RIDE_TYPE, default="RIDES")
     ride_status = models.CharField(max_length=50, choices=RIDE_STATUS, default="PENDING")
 
     price = models.FloatField(
@@ -110,6 +107,16 @@ class Ride(BaseModel):
     rating = models.PositiveIntegerField(default=0)
     ride_feedback = models.TextField(null=True, blank=True)
 
+    is_completed = models.BooleanField(default=False)
+
     class Meta:
+        oordering = ["-created_at"]
         verbose_name = "VEHICLE REGISTRATION"
         verbose_name_plural = "VEHICLE REGISTRATIONS"
+    
+    @classmethod
+    def fetch_ride_status(cls, user):
+        create_ride = cls.objects.filter(user=user, is_completed=False).first()
+        if create_ride:
+            return create_ride
+        return None

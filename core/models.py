@@ -20,6 +20,17 @@ VEHICLE_STATUS = (
     ("OFFLINE", "Offline"),
 )
 
+RIDE_TYPE = (
+    ("ECONOMY", "Economy"),
+    ("SUV", "SUV"),
+    ("LUXURY", "Luxury"),
+)
+
+VEHICLE_TYPE = (
+    ("RIDES", "Rides"),
+    ("PACKAGE_DELIVERY", "Package Delivery"),
+)
+
 
 class BaseModel(models.Model):
     """Base model for reuse.
@@ -279,8 +290,18 @@ class ConstantTable(BaseModel):
     allow_registration = models.BooleanField(default=True)
     allow_vehicle_registration = models.BooleanField(default=True)
     country_code = models.CharField(null=True, blank=True)
+    base_rate = models.FloatField(default=5.0)
+    economy_kilometer_rate = models.FloatField(default=2.5)
+    suv_kilometer_rate = models.FloatField(default=3.5)
+    luxury_kilometer_rate = models.FloatField(default=4.0)
+    time_based_rate = models.FloatField(default=0.5)
+    peak_hour_rate = models.FloatField(default=1.5)
+    package_delivery_rate = models.FloatField(default=1.0)
+    duration_seconds = models.IntegerField(default=600)
+    minimum_rate = models.FloatField(default=10.0)
 
     class Meta:
+        ordering = ["-created_at"]
         verbose_name = "CONSTANT TABLE"
         verbose_name_plural = "CONSTANT TABLES"
 
@@ -298,24 +319,57 @@ class ConstantTable(BaseModel):
             )
         return constant_instance
     
+    def calculate_fare(cls, country_code, ride_type, distance, duration, is_peak_hours, is_delivery, package_weight, points):
+        country_constants = cls.constant_table_instance(cls, country_code)
+        if ride_type == "ECONOMY":
+            kilometer_rate = country_constants.economy_kilometer_rate
+        elif ride_type == "SUV":
+            kilometer_rate = country_constants.suv_kilometer_rate
+        else:
+            kilometer_rate = country_constants.luxury_kilometer_rate
+
+        total_fare = 0  
+        total_fare += country_constants.base_rate
+        total_fare += kilometer_rate * distance
+        if duration > country_constants.duration_seconds:
+            total_fare += country_constants.time_based_rate * (distance/60)
+        if is_peak_hours:
+            total_fare += country_constants.peak_hour_rate
+        if is_delivery:
+            total_fare += country_constants.package_delivery_rate * package_weight
+        
+        if total_fare >= total_fare:
+            total_fare = total_fare
+        else:
+            total_fare = total_fare
+
+        if points > 0:
+            if total_fare >= points:
+                point_discount = total_fare - points
+                point_deducted = True
+                points_left = 0
+            else:
+                point_discount = total_fare
+                point_deducted = True
+                points_left = point_discount - total_fare
+        else:
+            point_discount = total_fare
+            point_deducted = False
+            points_left = 0
+
+        return total_fare, point_discount, point_deducted, points_left
+    
 
 class VehicleSettings(BaseModel):
     name = models.CharField(max_length=255, null=True, blank=True)
-    base_fare = models.FloatField(
-        default=0.0,
-        validators=[MinValueValidator(0.0)],
+    ride_type = models.CharField(
+        max_length=255, blank=True, null=True, choices=RIDE_TYPE
     )
-    base_distance = models.FloatField(
-        default=0.0,
-        validators=[MinValueValidator(0.0)],
-    )
-    waiting_charge = models.FloatField(
-        default=0.0,
-        validators=[MinValueValidator(0.0)],
-    )
+    vehicle_type = models.CharField(max_length=50, blank=True, null=True, choices=VEHICLE_TYPE)
     is_active = models.BooleanField(default=False)
 
     class Meta:
+        ordering = ["-created_at"]
         verbose_name = "VEHICLE SETTING"
         verbose_name_plural = "VEHICLE SETTINGS"
 
@@ -339,5 +393,6 @@ class VehicleRegistration(BaseModel):
     deleted_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
+        ordering = ["-created_at"]
         verbose_name = "VEHICLE REGISTRATION"
         verbose_name_plural = "VEHICLE REGISTRATIONS"
