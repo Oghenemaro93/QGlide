@@ -16,6 +16,7 @@ from core.helpers.mailersend import MailerSendApi
 from core.models import User, VehicleRegistration, VehicleSettings
 from core.permissions import UserIsActive
 from core.serializer import ChangeForgotPasswordSerializer, ChangeUserPasswordSerializer, FetchVehicleRegistrationAdminSerializer, FetchVehicleRegistrationSerializer, FetchVehicleTypeSerializer, ForgotPasswordSerializer, RegistrationSerializer, ResendVerificationCodeSerializer, UserProfileSerializer, VehicleRegistrationSerializer, VerificationCodeSerializer
+from ride.models import Ride
 
 # Create your views here.
 
@@ -144,7 +145,7 @@ class FetchVehicleTypeAdminAPIView(generics.ListAPIView):
         return Response(response_data, status=status.HTTP_200_OK)
     
 
-class VehicleRegistrationAPIView(generics.ListAPIView):
+class FetchVehicleRegistrationAPIView(generics.ListAPIView):
     permission_classes = [IsAuthenticated, UserIsActive]
     pagination_class = CustomPagination
     serializer_class = FetchVehicleRegistrationSerializer
@@ -173,7 +174,7 @@ class VehicleRegistrationAPIView(generics.ListAPIView):
         return Response(response_data, status=status.HTTP_200_OK)
     
 
-class VehicleRegistrationAdminAPIView(generics.ListAPIView):
+class FetchVehicleRegistrationAdminAPIView(generics.ListAPIView):
     permission_classes = [IsAuthenticated, UserIsActive]
     pagination_class = CustomPagination
     serializer_class = FetchVehicleRegistrationAdminSerializer
@@ -211,9 +212,49 @@ class VerifyUserAPIView(generics.ListAPIView):
         user_id = user.id
         is_driver = user.user_type
         country_code = user.country_code
+
+        ride_type = None
+        vehicle_type = None
+
+        if user.user_type == "USER":
+            get_ride = Ride.objects.filter(user=user, is_completed=False).first()
+            if get_ride is None:
+                return Response({
+                    "status": False,
+                    "message": "User has no open ride",
+                }, status=status.HTTP_403_FORBIDDEN)
+            else:
+                ride_type = get_ride.ride_type
+                vehicle_type = get_ride.vehicle_type
+        else:
+            get_rider = VehicleRegistration.objects.filter(user=user, vehicle_status="ONLINE", is_active=True).first()
+            if get_rider is None:
+                return Response({
+                    "status": False,
+                    "message": "Rider has no available vehicle",
+                }, status=status.HTTP_403_FORBIDDEN)
+
+            else:
+                if get_rider.vehichle_type is None:
+                    return Response({
+                        "status": False,
+                        "message": "Rider has no available vehicle",
+                    }, status=status.HTTP_403_FORBIDDEN)
+                else:
+                    ride_type = get_rider.vehichle_type.ride_type
+                    vehicle_type = get_rider.vehichle_type.vehicle_type
+                    
+        if ride_type is None or vehicle_type is None:
+            return Response({
+                "status": False,
+                "message": "Rider has no available vehicle",
+            }, status=status.HTTP_403_FORBIDDEN) 
+        
         return Response({
             'user_id': user_id,
             'is_driver': True if is_driver == "RIDER" else False,
+            'ride_type': ride_type,
+            'vehicle_type': vehicle_type,
             'country_code': country_code
         }, status=status.HTTP_200_OK)
 
@@ -265,6 +306,7 @@ class ResendVerificationCodeAPIView(APIView):
     @swagger_auto_schema(request_body=ResendVerificationCodeSerializer)
     def post(self, request):
         """Handle HTTP POST request."""
+        
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
         email = serializer.validated_data.get("email")

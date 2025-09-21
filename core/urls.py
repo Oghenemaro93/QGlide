@@ -10,8 +10,8 @@ urlpatterns = [
     path("fetch_vehicle_type/", views.FetchVehicleTypeAPIView.as_view(), name="fetch_vehicle_type"),
     path("fetch_vehicle_type_admin/", views.FetchVehicleTypeAdminAPIView.as_view(), name="fetch_vehicle_type_admin"),
     path("register_vehicle/", views.VehicleRegistrationAPIView.as_view(), name="register_vehicle"),
-    path("fetch_vehicle_registration/", views.VehicleRegistrationAPIView.as_view(), name="fetch_vehicle_registration"),
-    path("fetch_vehicle_registration_admin/", views.VehicleRegistrationAdminAPIView.as_view(), name="fetch_vehicle_registration_admin"),
+    path("fetch_vehicle_registration/", views.FetchVehicleRegistrationAPIView.as_view(), name="fetch_vehicle_registration"),
+    path("fetch_vehicle_registration_admin/", views.FetchVehicleRegistrationAdminAPIView.as_view(), name="fetch_vehicle_registration_admin"),
     path("verify_email/", views.VerificationAPIView.as_view(), name="verify-email"),
     path(
         "send_verification_code/",

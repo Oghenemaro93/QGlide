@@ -86,6 +86,22 @@ class VehiclePrimaryKeyRelatedField(serializers.PrimaryKeyRelatedField):
             self.fail("incorrect_type", data_type=type(data).__name__)
 
 
+class DriverPrimaryKeyRelatedField(serializers.PrimaryKeyRelatedField):
+
+    default_error_messages = {
+        "does_not_exist": "Please provide a valid Driver ID.",
+        "incorrect_type": "Incorrect type. Expected a valid Driver ID, but got {data_type}.",
+    }
+
+    def to_internal_value(self, data):
+        try:
+            return super().to_internal_value(data)
+        except ObjectDoesNotExist:
+            self.fail("does_not_exist", pk_value=data)
+        except (TypeError, ValueError):
+            self.fail("incorrect_type", data_type=type(data).__name__)
+
+
 class CustomTokenObtainSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
         phone_number = attrs[self.username_field]
@@ -321,9 +337,7 @@ class FetchVehicleTypeSerializer(ModelCustomSerializer):
         fields = (
             "id",
             "name",
-            "base_fare",
-            "base_distance",
-            "waiting_charge",
+            "vehicle_type",
             "is_active",
         )
 
