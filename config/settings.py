@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     # Local apps
     'core',
+    'ride',
     # 3rd party apps
     'drf_yasg',
     'corsheaders',
