@@ -171,6 +171,7 @@ class CustomTokenObtainSerializer(TokenObtainPairSerializer):
             "last_name": user.last_name,
             "phone_number": user.phone_number,
             "email": user.email,
+            "country_code": user.country_code
         }
         return this_user
 
@@ -189,6 +190,7 @@ class RegistrationSerializer(ModelCustomSerializer):
             "ip_address",
             "referral_code",
             "confirm_password",
+            "country_code"
         )
         extra_kwargs = {
             "first_name": {"required": True},
@@ -196,10 +198,16 @@ class RegistrationSerializer(ModelCustomSerializer):
             "phone_number": {"required": True},
             "email": {"required": True},
             "user_type": {"required": True},
+            "country_code": {"required": True},
         }
 
     def validate(self, attrs):
-        constant_data = ConstantTable.constant_table_instance()
+        country_code = attrs.get("coountry_code")
+        if not country_code:
+            raise CustomSerializerError(
+                {"status": False, "country_code": "Country Code is Required"}
+            )
+        constant_data = ConstantTable.constant_table_instance(country_code=country_code)
         if constant_data.allow_registration is False:
             raise CustomSerializerError(
                 {"status": False, "message": "Registration is temporarily unavailable"}
@@ -279,7 +287,7 @@ class VehicleRegistrationSerializer(ModelCustomSerializer):
     def validate(self, attrs):
         user = self.context.get("user")
         previous_vehicle = VehicleRegistration.objects.filter(user=user, is_deleted=False)
-        constant_data = ConstantTable.constant_table_instance()
+        constant_data = ConstantTable.constant_table_instance(country_code=user.country_code)
         if constant_data.allow_vehicle_registration is False:
             raise CustomSerializerError(
                 {"status": False, "message": "Vehicle Registration is temporarily unavailable"}

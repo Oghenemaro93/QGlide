@@ -207,11 +207,14 @@ class VerifyUserAPIView(generics.ListAPIView):
     permission_classes = [IsAuthenticated, UserIsActive]
     def post(self, request):
 
-        user_id = request.user.id
-        is_driver = request.user.user_type
+        user = request.user
+        user_id = user.id
+        is_driver = user.user_type
+        country_code = user.country_code
         return Response({
             'user_id': user_id,
-            'is_driver': True if is_driver == "RIDER" else False
+            'is_driver': True if is_driver == "RIDER" else False,
+            'country_code': country_code
         }, status=status.HTTP_200_OK)
 
 

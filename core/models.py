@@ -95,6 +95,7 @@ class User(AbstractUser, BaseModel):
     is_suspended = models.BooleanField(default=False)
     is_deleted = models.BooleanField(default=False)
     deleted_at = models.DateTimeField(null=True, blank=True)
+    country_code = models.CharField(null=True, blank=True)
 
     USERNAME_FIELD = "phone_number"
     # REQUIRED_FIELDS = ["phone_number"]
@@ -277,21 +278,24 @@ class User(AbstractUser, BaseModel):
 class ConstantTable(BaseModel):
     allow_registration = models.BooleanField(default=True)
     allow_vehicle_registration = models.BooleanField(default=True)
+    country_code = models.CharField(null=True, blank=True)
 
     class Meta:
         verbose_name = "CONSTANT TABLE"
         verbose_name_plural = "CONSTANT TABLES"
 
     @classmethod
-    def constant_table_instance(cls):
+    def constant_table_instance(cls, country_code):
         """
         This function always returns an instance of the constant table
         """
         # Try to retrieve the cached data
-        constant_instance = cls.objects.last()
+        constant_instance = cls.objects.filter(country_code=country_code).last()
         if constant_instance is None:
             # If the cache is empty, create a new instance
-            constant_instance = cls.objects.create()
+            constant_instance = cls.objects.create(
+                country_code=country_code
+            )
         return constant_instance
     
 
