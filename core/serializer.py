@@ -203,6 +203,11 @@ class RegistrationSerializer(ModelCustomSerializer):
         }
 
     def validate(self, attrs):
+        user_type = attrs.get("user_type")
+        if user_type not in ["USER", "RIDER"]:
+            raise CustomSerializerError(
+                {"status": False, "user_type": "Invalid User Type"}
+            )
         country_code = attrs.get("coountry_code")
         if not country_code:
             raise CustomSerializerError(
