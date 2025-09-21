@@ -190,6 +190,7 @@ class RegistrationSerializer(ModelCustomSerializer):
             "ip_address",
             "referral_code",
             "confirm_password",
+            "user_type",
             "country_code"
         )
         extra_kwargs = {
