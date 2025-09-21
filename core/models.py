@@ -289,7 +289,6 @@ class ConstantTable(BaseModel):
         """
         This function always returns an instance of the constant table
         """
-        
         # Try to retrieve the cached data
         constant_instance = cls.objects.filter(country_code=country_code).last()
         if constant_instance is None:
