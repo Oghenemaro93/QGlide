@@ -102,7 +102,7 @@ class ConstantTableResourceAdmin(ImportExportModelAdmin):
 class VehicleSettingsResourceAdmin(ImportExportModelAdmin):
     resource_class = resources.VehicleSettingsResource
 
-    search_fields = ["vehicle_type"]
+    search_fields = ["ride_type"]
     list_filter = ["is_active"]
     def get_list_display(self, request):
         return [field.name for field in self.model._meta.concrete_fields]
