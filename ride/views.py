@@ -7,9 +7,13 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from core.models import User
-from core.permissions import AlreadyStartedRide, CancelRiderActiveRide, CancelUserActiveRide, UserHasNoActiveRide, UserIsActive
+from core.permissions import (
+    AlreadyStartedRide, CancelRiderActiveRide, CancelUserActiveRide, UserHasNoActiveRide, UserIsActive
+)
 from ride.models import Ride
-from ride.serializer import AcceptRideSerializer, CancelRideSerializer, CancelUserRideSerializer, CreateRideSerializer, RideStatusSerializer
+from ride.serializer import (
+    AcceptRideSerializer, CancelUserRideSerializer, CreateRideSerializer, RideStatusSerializer
+)
 # Create your views here.
 
 class CreateRideAPIView(APIView):

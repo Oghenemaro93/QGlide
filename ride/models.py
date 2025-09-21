@@ -110,7 +110,7 @@ class Ride(BaseModel):
     is_completed = models.BooleanField(default=False)
 
     class Meta:
-        oordering = ["-created_at"]
+        ordering = ["-created_at"]
         verbose_name = "VEHICLE REGISTRATION"
         verbose_name_plural = "VEHICLE REGISTRATIONS"
     

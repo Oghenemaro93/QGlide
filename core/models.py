@@ -379,7 +379,7 @@ class VehicleRegistration(BaseModel):
     )
     vehicle_make = models.CharField(max_length=255, null=True, blank=True)
     vehichle_type = models.ForeignKey(
-        VehicleSettings, on_delete=models.CASCADE, related_name="vehicle_type", null=True, blank=True
+        VehicleSettings, on_delete=models.CASCADE, related_name="vehicle_registration_type", null=True, blank=True
     )
     vehicle_model = models.CharField(max_length=255, null=True, blank=True)
     vehicle_plate_number = models.CharField(max_length=255, null=True, blank=True)
