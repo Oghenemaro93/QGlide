@@ -6,14 +6,16 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from core.models import User
+from core.models import ConstantTable, User
 from core.permissions import (
-    AlreadyStartedRide, CancelRiderActiveRide, CancelUserActiveRide, UserHasNoActiveRide, UserIsActive
+    AlreadyStartedRide, AcceptedRiderActiveRide, CancelUserActiveRide, CashPaymentActiveRide, EndRiderActiveRide, StartRiderActiveRide, UserHasNoActiveRide, UserIsActive, WaitingRiderActiveRide
 )
 from ride.models import Ride
 from ride.serializer import (
-    AcceptRideSerializer, CancelUserRideSerializer, CreateRideSerializer, RideStatusSerializer
+    AcceptRideSerializer, CancelUserRideSerializer, CashPaymentSerializer, CreateRideSerializer, EndRideSerializer, RideStatusSerializer, StartRideSerializer, WaitingRideSerializer
 )
+from haversine import haversine, Unit
+from django.utils import timezone
 # Create your views here.
 
 class CreateRideAPIView(APIView):
@@ -26,6 +28,10 @@ class CreateRideAPIView(APIView):
         """Handle HTTP POST request."""
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
+        current_time = timezone.localtime().time()
+        constant_table = ConstantTable.constant_table_instance(country_code=request.user.country_code)
+        is_peak_hours = constant_table.is_peak_hour(peak_hours=constant_table.peak_hours, current_time=current_time)
+        serializer["is_peak_hours"] = is_peak_hours
         serializer["user"] = request.user
         serializer.save()
         return Response(
@@ -143,7 +149,7 @@ class CancelRideByUserAPIView(APIView):
     def post(self, request):
         """Handle HTTP POST request."""
 
-        opened_ride = Ride.objects.filter(user=request.user, ride_status="ACCEPTED", is_completed=False).first()
+        opened_ride = Ride.objects.filter(user=request.user, ride_status__in=["ACCEPTED", "WAITING"], is_completed=False).first()
 
         serializer = self.serializer_class(opened_ride, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
@@ -158,14 +164,14 @@ class CancelRideByUserAPIView(APIView):
     
 
 class CancelRideByRiderAPIView(APIView):
-    permission_classes = [IsAuthenticated, UserIsActive, CancelRiderActiveRide]
+    permission_classes = [IsAuthenticated, UserIsActive, AcceptedRiderActiveRide]
 
     serializer_class = CancelUserRideSerializer
     @swagger_auto_schema(request_body=CancelUserRideSerializer)
     def post(self, request):
         """Handle HTTP POST request."""
 
-        opened_ride = Ride.objects.filter(driver=request.user, ride_status="ACCEPTED", is_completed=False).first()
+        opened_ride = Ride.objects.filter(driver=request.user, ride_status__in=["ACCEPTED", "WAITING"], is_completed=False).first()
 
         serializer = self.serializer_class(opened_ride, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
@@ -179,11 +185,11 @@ class CancelRideByRiderAPIView(APIView):
         )
     
 
-class StartRideByRiderAPIView(APIView):
-    permission_classes = [IsAuthenticated, UserIsActive, CancelRiderActiveRide]
+class WaitingRideByRiderAPIView(APIView):
+    permission_classes = [IsAuthenticated, UserIsActive, WaitingRiderActiveRide]
 
-    serializer_class = CancelUserRideSerializer
-    @swagger_auto_schema(request_body=CancelUserRideSerializer)
+    serializer_class = WaitingRideSerializer
+    @swagger_auto_schema(request_body=WaitingRideSerializer)
     def post(self, request):
         """Handle HTTP POST request."""
 
@@ -191,10 +197,108 @@ class StartRideByRiderAPIView(APIView):
 
         serializer = self.serializer_class(opened_ride, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
+        serializer.save()
         return Response(
             {
                 "status": True,
-                "message": "Ride Cancelled",
+                "message": "Rider Waiting",
+            },
+            status=status.HTTP_200_OK,
+        )
+    
+
+class StartRideByRiderAPIView(APIView):
+    permission_classes = [IsAuthenticated, UserIsActive, StartRiderActiveRide]
+
+    serializer_class = StartRideSerializer
+    @swagger_auto_schema(request_body=StartRideSerializer)
+    def post(self, request):
+        """Handle HTTP POST request."""
+
+        opened_ride = Ride.objects.filter(driver=request.user, ride_status="WAITING", is_completed=False).first()
+
+        serializer = self.serializer_class(opened_ride, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(
+            {
+                "status": True,
+                "message": "Ride Started",
+            },
+            status=status.HTTP_200_OK,
+        )
+    
+
+class RideEndByRiderAPIView(APIView):
+    permission_classes = [IsAuthenticated, UserIsActive, EndRiderActiveRide]
+
+    serializer_class = EndRideSerializer
+    @swagger_auto_schema(request_body=EndRideSerializer)
+    def post(self, request):
+        """Handle HTTP POST request."""
+
+        opened_ride = Ride.objects.filter(driver=request.user, ride_status="START_RIDE", is_completed=False).first()
+
+        serializer = self.serializer_class(opened_ride, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        constant_table = ConstantTable.constant_table_instance(country_code=request.user.country_code)
+
+        distance = haversine(
+            (opened_ride.driver_pickup_latitude, opened_ride.driver_pickup_longitude),
+            (opened_ride.driver_ride_end_latitude, opened_ride.driver_ride_end_longitude),
+            unit=Unit.KILOMETERS
+        )
+
+        duration = opened_ride.ride_end_time - opened_ride.ride_start_time
+        
+        duration_seconds = duration.seconds
+
+        total_fare, point_discount, point_deducted, points_left = constant_table.calculate_fare(
+            country_code=opened_ride.user.country_code, 
+            ride_type=opened_ride.ride_type, 
+            distance=distance, 
+            duration=duration_seconds, 
+            is_peak_hours=opened_ride.is_peak_hours
+        )
+        
+        opened_ride.ride_distance = distance
+        opened_ride.payable_amount = total_fare
+        opened_ride.ride_duration = duration
+        opened_ride.point_amount = point_discount
+        opened_ride.save()
+
+        if point_deducted:
+            pass
+
+        return Response(
+            {
+                "status": True,
+                "message": "Ride Ended",
+            },
+            status=status.HTTP_200_OK,
+        )
+    
+
+class CashPaymentByRiderAPIView(APIView):
+    permission_classes = [IsAuthenticated, UserIsActive, CashPaymentActiveRide]
+
+    serializer_class = CashPaymentSerializer
+    @swagger_auto_schema(request_body=CashPaymentSerializer)
+    def post(self, request):
+        """Handle HTTP POST request."""
+
+        opened_ride = Ride.objects.filter(driver=request.user, ride_status="END_RIDE", is_completed=False).first()
+
+        serializer = self.serializer_class(opened_ride, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(
+            {
+                "status": True,
+                "ride_id": opened_ride.id,
+                "message": "Payment Completed",
             },
             status=status.HTTP_200_OK,
         )

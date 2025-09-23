@@ -10,7 +10,7 @@ RIDE_STATUS = (
     ("PENDING", "Pending"),
     ("ACCEPTED", "Accepted"),
     ("WAITING", "Waiting"),
-    ("PICKUP", "Pickup"),
+    ("RIDE_START", "Ride Start"),
     ("RIDE_END", "Ride End"),
     ("PAID", "Paid"),
     ("COMPLETED", "Completed"),
@@ -29,13 +29,9 @@ CANCELLED_BY = (
     ("NONE", "None"),
 )
 
-RIDE_RATING = (
-    ("ONE", "1"),
-    ("TWO", "2"),
-    ("THREE", "3"),
-    ("FOUR", "4"),
-    ("FIVE", "5"),
-    ("NONE", "None"),   
+PAYMENT_METHOD = (
+    ("CASH", "Cash"),
+    ("CARD", "Card"),
 )
 
 class Ride(BaseModel):
@@ -46,6 +42,10 @@ class Ride(BaseModel):
     driver_pickup_longitude = models.FloatField(null=True, blank=True)
     driver_pickup_latitude = models.FloatField(null=True, blank=True)
     driver_pickup_address = models.CharField(max_length=255, null=True, blank=True)
+
+    driver_waiting_longitude = models.FloatField(null=True, blank=True)
+    driver_waiting_latitude = models.FloatField(null=True, blank=True)
+    driver_waiting_address = models.CharField(max_length=255, null=True, blank=True)
 
     user_pickup_longitude = models.FloatField(null=True, blank=True)
     user_pickup_latitude = models.FloatField(null=True, blank=True)
@@ -63,7 +63,7 @@ class Ride(BaseModel):
     driver_ride_end_latitude = models.FloatField(null=True, blank=True)
     driver_ride_end_address = models.CharField(max_length=255, null=True, blank=True)
 
-    ride_distance = models.FloatField(null=True, blank=True)
+    ride_distance = models.FloatField(null=True, blank=True, default=0)
     ride_distance_unit = models.CharField(max_length=50, choices=RIDE_DISTANCE_UNIT, default="MILES")
     
     vehicle = models.ForeignKey(
@@ -77,6 +77,7 @@ class Ride(BaseModel):
     ride_duration = models.DurationField(null=True, blank=True)
 
     ride_status = models.CharField(max_length=50, choices=RIDE_STATUS, default="PENDING")
+    payment_method = models.CharField(max_length=50, blank=True, null=True, choices=PAYMENT_METHOD)
 
     price = models.FloatField(
         default=0.0,
@@ -86,7 +87,7 @@ class Ride(BaseModel):
         default=0.0,
         validators=[MinValueValidator(0.0)],
     )
-    discount_amount = models.FloatField(
+    point_amount = models.FloatField(
         default=0.0,
         validators=[MinValueValidator(0.0)],
     )
@@ -99,15 +100,20 @@ class Ride(BaseModel):
         validators=[MinValueValidator(0.0)],
     )
 
-    cancelled_by = models.CharField(max_length=50, choices=CANCELLED_BY, default="NONE")
+    cancelled_by = models.CharField(max_length=50, blank=True, null=True, choices=CANCELLED_BY, default="NONE")
     cancelled_at = models.DateTimeField(null=True, blank=True)
     cancelled_reason = models.CharField(max_length=255,  null=True, blank=True)
+    
+    waiting_at = models.DateTimeField(null=True, blank=True)
+    payment_at = models.DateTimeField(null=True, blank=True)
 
-    ride_rating = models.FloatField(null=True, choices=RIDE_RATING, default="NONE")
     rating = models.PositiveIntegerField(default=0)
     ride_feedback = models.TextField(null=True, blank=True)
 
+    is_peak_hours = models.BooleanField(default=False)
     is_completed = models.BooleanField(default=False)
+    is_paid = models.BooleanField(default=False)
+    is_rated = models.BooleanField(default=False)
 
     class Meta:
         ordering = ["-created_at"]

@@ -216,39 +216,39 @@ class VerifyUserAPIView(generics.ListAPIView):
         ride_type = None
         vehicle_type = None
 
-        if user.user_type == "USER":
-            get_ride = Ride.objects.filter(user=user, is_completed=False).first()
-            if get_ride is None:
-                return Response({
-                    "status": False,
-                    "message": "User has no open ride",
-                }, status=status.HTTP_403_FORBIDDEN)
-            else:
-                ride_type = get_ride.ride_type
-                vehicle_type = get_ride.vehicle_type
-        else:
-            get_rider = VehicleRegistration.objects.filter(user=user, vehicle_status="ONLINE", is_active=True).first()
-            if get_rider is None:
-                return Response({
-                    "status": False,
-                    "message": "Rider has no available vehicle",
-                }, status=status.HTTP_403_FORBIDDEN)
+        # if user.user_type == "USER":
+        #     get_ride = Ride.objects.filter(user=user, is_completed=False).first()
+        #     if get_ride is None:
+        #         return Response({
+        #             "status": False,
+        #             "message": "User has no open ride",
+        #         }, status=status.HTTP_403_FORBIDDEN)
+        #     else:
+        #         ride_type = get_ride.ride_type
+        #         vehicle_type = get_ride.vehicle_type
+        # else:
+        #     get_rider = VehicleRegistration.objects.filter(user=user, vehicle_status="ONLINE", is_active=True).first()
+        #     if get_rider is None:
+        #         return Response({
+        #             "status": False,
+        #             "message": "Rider has no available vehicle",
+        #         }, status=status.HTTP_403_FORBIDDEN)
 
-            else:
-                if get_rider.vehichle_type is None:
-                    return Response({
-                        "status": False,
-                        "message": "Rider has no available vehicle",
-                    }, status=status.HTTP_403_FORBIDDEN)
-                else:
-                    ride_type = get_rider.vehichle_type.ride_type
-                    vehicle_type = get_rider.vehichle_type.vehicle_type
+        #     else:
+        #         if get_rider.vehichle_type is None:
+        #             return Response({
+        #                 "status": False,
+        #                 "message": "Rider has no available vehicle",
+        #             }, status=status.HTTP_403_FORBIDDEN)
+        #         else:
+        #             ride_type = get_rider.vehichle_type.ride_type
+        #             vehicle_type = get_rider.vehichle_type.vehicle_type
                     
-        if ride_type is None or vehicle_type is None:
-            return Response({
-                "status": False,
-                "message": "Rider has no available vehicle",
-            }, status=status.HTTP_403_FORBIDDEN) 
+        # if ride_type is None or vehicle_type is None:
+        #     return Response({
+        #         "status": False,
+        #         "message": "Rider has no available vehicle",
+        #     }, status=status.HTTP_403_FORBIDDEN) 
         
         return Response({
             'user_id': user_id,

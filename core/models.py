@@ -12,6 +12,9 @@ from django.db import models
 from django.utils.translation import gettext as _
 
 from core.helpers.func import generate_verification_code
+from typing import Optional
+from datetime import datetime
+from django.utils import timezone
 
 
 # Create your models here.
@@ -296,6 +299,16 @@ class ConstantTable(BaseModel):
     luxury_kilometer_rate = models.FloatField(default=4.0)
     time_based_rate = models.FloatField(default=0.5)
     peak_hour_rate = models.FloatField(default=1.5)
+    peak_hours = models.JSONField(default={
+        "1": {
+            "start": "06:00",
+            "end": "09:00",
+        },
+        "2": {
+            "start": "17:00",
+            "end": "20:00",
+        },
+    })
     package_delivery_rate = models.FloatField(default=1.0)
     duration_seconds = models.IntegerField(default=600)
     minimum_rate = models.FloatField(default=10.0)
@@ -319,7 +332,37 @@ class ConstantTable(BaseModel):
             )
         return constant_instance
     
-    def calculate_fare(cls, country_code, ride_type, distance, duration, is_peak_hours, is_delivery, package_weight, points):
+    @classmethod
+    def is_peak_hour(cls, peak_hours, current_time):
+        # get current local time with timezone
+        now = current_time
+
+        for period in peak_hours.values():
+            start = datetime.strptime(period["start"], "%H:%M").time()
+            end = datetime.strptime(period["end"], "%H:%M").time()
+
+            # normal case: start < end
+            if start <= now <= end:
+                return True
+
+            # handle crossing midnight (e.g., 23:00 - 02:00)
+            if start > end and (now >= start or now <= end):
+                return True
+
+        return False
+    
+    @classmethod
+    def calculate_fare(
+        cls, 
+        country_code: str, 
+        ride_type: str, 
+        distance: float, 
+        duration: int, 
+        is_peak_hours: bool, 
+        points: Optional[int] = 0, 
+        is_delivery: Optional[bool] = False, 
+        package_weight: Optional[float] = 0
+    ):
         country_constants = cls.constant_table_instance(cls, country_code)
         if ride_type == "ECONOMY":
             kilometer_rate = country_constants.economy_kilometer_rate
@@ -353,7 +396,7 @@ class ConstantTable(BaseModel):
                 point_deducted = True
                 points_left = point_discount - total_fare
         else:
-            point_discount = total_fare
+            point_discount = 0
             point_deducted = False
             points_left = 0
 
