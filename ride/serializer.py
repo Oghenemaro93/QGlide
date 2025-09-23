@@ -1,7 +1,7 @@
 from rest_framework import exceptions, serializers
 from rest_framework.exceptions import APIException
 
-from core.models import VehicleRegistration
+from core.models import ConstantTable, VehicleRegistration
 from core.serializer import CustomSerializerError, DriverPrimaryKeyRelatedField, ModelCustomSerializer
 from ride.models import Ride
 from haversine import haversine, Unit
@@ -26,6 +26,7 @@ class CreateRideSerializer(ModelCustomSerializer):
             "ride_type",
             "ride_distance",
             "ride_distance_unit",
+            "payment_method",
             "price",
         )
         extra_kwargs = {
@@ -40,6 +41,7 @@ class CreateRideSerializer(ModelCustomSerializer):
             "user_ride_end_address": {"required": True},
             "vehicle_type": {"required": True},
             "ride_type": {"required": True},
+            "payment_method": {"required": True},
         }
 
     def validate(self, attrs):
@@ -81,6 +83,11 @@ class RideStatusSerializer(ModelCustomSerializer):
             "user_ride_end_latitude",
             "user_ride_end_address",
 
+            # where user was waiting for pickup
+            "driver_waiting_longitude",
+            "driver_waiting_latitude",
+            "driver_waiting_address",
+            
             # where user was picked up
             "driver_pickup_longitude",
             "driver_pickup_latitude",
@@ -112,13 +119,19 @@ class RideStatusSerializer(ModelCustomSerializer):
             "cancellation_amount",
 
             "cancelled_by",
-            "cancelled_at",
             "cancelled_reason",
+            
+            "cancelled_at",
+            "waiting_at",
 
-            "ride_rating",
+            "payment_method",
+
             "rating",
             "ride_feedback",
 
+            "payment_method",
+            
+            "is_paid",
             "is_completed",
         )
 
@@ -192,6 +205,26 @@ class CancelRiderRideSerializer(ModelCustomSerializer):
         return attrs
     
 
+class WaitingRideSerializer(ModelCustomSerializer):
+    class Meta:
+        model = Ride
+        fields = (
+            "driver_waiting_longitude",
+            "driver_waiting_latitude",
+            "driver_waiting_address",
+        )
+        extra_kwargs = {
+            "driver_waiting_longitude": {"required": True},
+            "driver_waiting_latitude": {"required": True},
+            "driver_waiting_address": {"required": True},
+        }
+    def validate(self, attrs):
+        attrs["ride_status"] = "WAITING"
+        attrs["waiting_at"] = timezone.now()
+        return attrs
+    
+
+
 class StartRideSerializer(ModelCustomSerializer):
     class Meta:
         model = Ride
@@ -205,3 +238,48 @@ class StartRideSerializer(ModelCustomSerializer):
             "driver_pickup_latitude": {"required": True},
             "driver_pickup_address": {"required": True},
         }
+    def validate(self, attrs):
+        attrs["ride_status"] = "RIDE_START"
+        attrs["ride_start_time"] = timezone.now()
+        return attrs
+    
+    
+class EndRideSerializer(ModelCustomSerializer):
+    class Meta:
+        model = Ride
+        fields = (
+            "driver_ride_end_longitude",
+            "driver_ride_end_latitude",
+            "driver_ride_end_address",
+        )
+        extra_kwargs = {
+            "driver_ride_end_longitude": {"required": True},
+            "driver_ride_end_latitude": {"required": True},
+            "driver_ride_end_address": {"required": True},
+        }
+    def validate(self, attrs):
+        attrs["ride_status"] = "RIDE_END"
+        attrs["ride_end_time"] = timezone.now()
+        return attrs
+
+
+class CashPaymentSerializer(ModelCustomSerializer):
+    class Meta:
+        model = Ride
+        fields = (
+            "is_paid",
+        )
+        extra_kwargs = {
+            "is_paid": {"required": True},
+        }
+    def validate(self, attrs):
+        payment_is_paid = attrs.get("is_paid")
+        if payment_is_paid is False:
+            raise CustomSerializerError(
+                {"status": False, "messgae": "Payment Incomplete"}
+            )
+        attrs["ride_status"] = "PAID"
+        attrs["payment_method"] = "CASH"
+        attrs["is_completed"] = True
+        attrs["payment_at"] = timezone.now()
+        return attrs

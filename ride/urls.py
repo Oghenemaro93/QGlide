@@ -9,7 +9,11 @@ rides = [
     path("accept_ride/", views.AcceptRideAPIView.as_view(), name="accept-ride"),
     path("cancel_ride_user/", views.CancelRideByUserAPIView.as_view(), name="cancel-ride-user"),
     path("cancel_ride_rider/", views.CancelRideByRiderAPIView.as_view(), name="cancel-ride-rider"),
-    path("start_ride_rider/", views.StartRideByRiderAPIView.as_view(), name="cancel-ride-rider"),
+    path("waiting_ride_rider/", views.WaitingRideByRiderAPIView.as_view(), name="wait-ride-rider"),
+    path("start_ride_rider/", views.StartRideByRiderAPIView.as_view(), name="start-ride-rider"),
+    path("end_ride_rider/", views.RideEndByRiderAPIView.as_view(), name="end-ride-rider"),
+    path("rider_cash_payment/", views.CashPaymentByRiderAPIView.as_view(), name="collect-cash-payment-rider"),
+
 ]
 
 urlpatterns = [
