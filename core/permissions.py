@@ -92,16 +92,56 @@ class CancelUserActiveRide(permissions.BasePermission):
 
     def has_permission(self, request, view):
 
-        opened_ride = Ride.objects.filter(user=request.user, ride_status="ACCEPTED", is_completed=False).first()
+        opened_ride = Ride.objects.filter(user=request.user, ride_status__in=["ACCEPTED", "WAITING"], is_completed=False).first()
         if opened_ride is None:
             raise NoAcceptedRide()
         return True
     
-class CancelRiderActiveRide(permissions.BasePermission):
+class AcceptedRiderActiveRide(permissions.BasePermission):
+
+    def has_permission(self, request, view):
+
+        opened_ride = Ride.objects.filter(driver=request.user, ride_status__in=["ACCEPTED", "WAITING"], is_completed=False).first()
+        if opened_ride is None:
+            raise NoAcceptedRide()
+        return True
+    
+
+class WaitingRiderActiveRide(permissions.BasePermission):
 
     def has_permission(self, request, view):
 
         opened_ride = Ride.objects.filter(driver=request.user, ride_status="ACCEPTED", is_completed=False).first()
+        if opened_ride is None:
+            raise NoAcceptedRide()
+        return True
+    
+
+class StartRiderActiveRide(permissions.BasePermission):
+
+    def has_permission(self, request, view):
+
+        opened_ride = Ride.objects.filter(driver=request.user, ride_status="WAITING", is_completed=False).first()
+        if opened_ride is None:
+            raise NoAcceptedRide()
+        return True
+    
+
+class EndRiderActiveRide(permissions.BasePermission):
+
+    def has_permission(self, request, view):
+
+        opened_ride = Ride.objects.filter(driver=request.user, ride_status="RIDE_START", is_completed=False).first()
+        if opened_ride is None:
+            raise NoAcceptedRide()
+        return True
+    
+
+class CashPaymentActiveRide(permissions.BasePermission):
+
+    def has_permission(self, request, view):
+
+        opened_ride = Ride.objects.filter(driver=request.user, ride_status="RIDE_END", is_completed=False).first()
         if opened_ride is None:
             raise NoAcceptedRide()
         return True
