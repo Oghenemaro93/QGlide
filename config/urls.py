@@ -21,6 +21,7 @@ from django.urls import include, path
 from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
 from rest_framework.permissions import AllowAny
+from core.views import GoogleAuthAPIView
 
 # Swagger-UI.
 schema_view = get_schema_view(
@@ -46,4 +47,8 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("v1/auth/", include("core.urls")),
     path("v1/ride/", include("ride.urls")),
+    path("accounts/", include("allauth.urls")),
+    # dj-rest-auth endpoints
+    path("auth/", include("dj_rest_auth.urls")),
+    path("auth/registration/", include("dj_rest_auth.registration.urls")),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

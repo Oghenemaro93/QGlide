@@ -1,10 +1,10 @@
 from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView
 from core import views
-from core.serializer import LoginView
+from core.serializer import GoogleLogin, LoginView
 
 urlpatterns = [
-    path("signup/", views.RegistrationAPIView.as_view(), name="signup"),
+    path("signup/", views.RegistrationAPIView.as_view(), name="account_signup"),
     path("signin/", LoginView.as_view(), name="signin"),
     path("verify-token/", views.VerifyUserAPIView.as_view(), name="signiverify-token"),
     path("fetch_vehicle_type/", views.FetchVehicleTypeAPIView.as_view(), name="fetch_vehicle_type"),
@@ -40,4 +40,7 @@ urlpatterns = [
         views.ChangeUserPasswordAPIView.as_view(),
         name="change-user-password",
     ),
+    path("google_auth/",views.GoogleAuthAPIView.as_view(), name="google-auth"),
+    path("google/signin/", views.GoogleLoginAPIView.as_view(), name="google_login"),
+    path("google/signup/", views.GoogleSignupWithProfile.as_view(), name="google_signup_profile"),
 ]
