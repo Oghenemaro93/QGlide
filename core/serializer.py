@@ -2,13 +2,18 @@ from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import update_last_login
 from django.core.exceptions import ObjectDoesNotExist
-from django.core.validators import FileExtensionValidator
 from django.db import transaction
 from rest_framework import exceptions, serializers
 from rest_framework.exceptions import APIException
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
+from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
+from dj_rest_auth.registration.serializers import SocialLoginSerializer
+from dj_rest_auth.registration.views import SocialLoginView
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.exceptions import AuthenticationFailed
+from dj_rest_auth.registration.serializers import RegisterSerializer
 
 from core.helpers.func import (
     generate_verification_code,
@@ -104,19 +109,19 @@ class DriverPrimaryKeyRelatedField(serializers.PrimaryKeyRelatedField):
 
 class CustomTokenObtainSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
-        phone_number = attrs[self.username_field]
+        email = attrs[self.username_field]
 
         authenticate_kwargs = {
-            self.username_field: phone_number,
+            self.username_field: email,
             "password": attrs["password"],
         }
         try:
             authenticate_kwargs["request"] = self.context["request"]
-            authenticate_kwargs["phone_number"] = authenticate_kwargs["phone_number"]
+            authenticate_kwargs["email"] = authenticate_kwargs["email"]
         except KeyError:
             pass
         """
-            Checking if the user exists by getting the phone_number(username field) from authentication_kwargs.
+            Checking if the user exists by getting the email(username field) from authentication_kwargs.
             If the user exists we check if the user account is active.
             If the user account is not active we raise the exception and pass the message.
             Thus stopping the user from getting authenticated altogether.
@@ -133,8 +138,8 @@ class CustomTokenObtainSerializer(TokenObtainPairSerializer):
         #         {"status": False, "password": f"password must be 6 digits."}
         #     )
         try:
-            user = User.objects.get(phone_number=authenticate_kwargs["phone_number"])
-            authenticate_kwargs["phone_number"] = user.phone_number
+            user = User.objects.get(email=authenticate_kwargs["email"])
+            authenticate_kwargs["email"] = user.email
 
             if not user.password:
                 self.error_messages["no_password"] = (
@@ -144,7 +149,7 @@ class CustomTokenObtainSerializer(TokenObtainPairSerializer):
                     self.error_messages["no_password"],
                 )
             self.user = authenticate(
-                phone_number=user.phone_number, password=authenticate_kwargs["password"]
+                email=user.email, password=authenticate_kwargs["password"]
             )
             if self.user is None:
                 self.error_messages["no_active_account"] = "invalid login credentials!"
@@ -213,7 +218,7 @@ class RegistrationSerializer(ModelCustomSerializer):
             "first_name": {"required": True},
             "last_name": {"required": True},
             "phone_number": {"required": True},
-            "email": {"required": True},
+            # "email": {"required": True},
             "user_type": {"required": True},
             "country_code": {"required": True},
         }
@@ -492,3 +497,58 @@ class ChangeUserPasswordSerializer(CustomSerializer):
         except Exception as e:
             raise CustomSerializerError({"status": False, "message": f"{e}"})
         return attrs
+
+
+class CustomRegisterSerializer(RegisterSerializer):
+    username = None  # remove username
+    email = serializers.EmailField(required=True)
+
+    def get_cleaned_data(self):
+        return {
+            "email": self.validated_data.get("email", ""),
+            "first_name": self.validated_data.get("first_name", ""),
+            "last_name": self.validated_data.get("last_name", ""),
+        }
+
+
+class CustomSocialLoginSerializer(SocialLoginSerializer):
+    username = None
+    email = serializers.EmailField(required=True)
+
+
+class GoogleSignupSerializer(serializers.Serializer):
+    access_token = serializers.CharField(required=True)
+    phone_number = serializers.CharField(required=True, allow_blank=False)
+    user_type = serializers.CharField(required=False, allow_blank=False)
+    country_code = serializers.CharField(required=False, allow_blank=False)
+
+class GoogleSigninSerializer(serializers.Serializer):
+    access_token = serializers.CharField(required=True)
+
+
+class GoogleLogin(SocialLoginView):
+    serializer_class = CustomSocialLoginSerializer
+
+    def process_login(self):
+        if not self.user or not self.user.pk:
+            raise AuthenticationFailed("No account found. Please sign up first.")
+        return super().process_login()
+
+    def get_response(self):
+        # Call parent response (user login)
+        response = super().get_response()
+        user = self.user
+
+        # Generate JWT
+        refresh = RefreshToken.for_user(user)
+        response.data.update({
+            "refresh": str(refresh),
+            "access": str(refresh.access_token),
+            "user_type": user.user_type,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "phone_number": user.phone_number,
+            "email": user.email,
+            "country_code": user.country_code
+        })
+        return response

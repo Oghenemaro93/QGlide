@@ -15,9 +15,12 @@ from core.helpers.func import generate_verification_code
 from core.helpers.mailersend import MailerSendApi
 from core.models import User, VehicleRegistration, VehicleSettings
 from core.permissions import UserIsActive
-from core.serializer import ChangeForgotPasswordSerializer, ChangeUserPasswordSerializer, FetchVehicleRegistrationAdminSerializer, FetchVehicleRegistrationSerializer, FetchVehicleTypeSerializer, ForgotPasswordSerializer, RegistrationSerializer, ResendVerificationCodeSerializer, UserProfileSerializer, VehicleRegistrationSerializer, VerificationCodeSerializer
+from core.serializer import ChangeForgotPasswordSerializer, ChangeUserPasswordSerializer, FetchVehicleRegistrationAdminSerializer, FetchVehicleRegistrationSerializer, FetchVehicleTypeSerializer, ForgotPasswordSerializer, GoogleSigninSerializer, GoogleSignupSerializer, RegistrationSerializer, ResendVerificationCodeSerializer, UserProfileSerializer, VehicleRegistrationSerializer, VerificationCodeSerializer
 from ride.models import Ride
-
+from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
+import requests
+from dj_rest_auth.registration.views import SocialLoginView
+from rest_framework_simplejwt.tokens import RefreshToken
 # Create your views here.
 
 
@@ -204,9 +207,9 @@ class FetchVehicleRegistrationAdminAPIView(generics.ListAPIView):
         return Response(response_data, status=status.HTTP_200_OK)
 
 
-class VerifyUserAPIView(generics.ListAPIView):
+class VerifyUserAPIView(APIView):
     permission_classes = [IsAuthenticated, UserIsActive]
-    def post(self, request):
+    def get(self, request):
 
         user = request.user
         user_id = user.id
@@ -427,3 +430,108 @@ class ChangeUserPasswordAPIView(APIView):
         return Response(
             {"message": "password updated successfully"}, status=status.HTTP_200_OK
         )
+    
+
+class GoogleAuthAPIView(APIView):
+    # serializer_class = ChangeUserPasswordSerializer
+
+    # @swagger_auto_schema(request_body=ChangeUserPasswordSerializer)
+    def get(self, request):
+        print(request.data)
+        return Response(
+            {"message": "Google Auth"}, status=status.HTTP_200_OK
+        )
+
+
+class GoogleSignupWithProfile(APIView):
+
+    serializer_class = GoogleSignupSerializer
+    # @swagger_auto_schema(request_body=GoogleSignupSerializer)
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        id_token = serializer.validated_data["access_token"]
+
+        # ✅ Verify token with Google
+        google_url = f"https://oauth2.googleapis.com/tokeninfo?id_token={id_token}"
+        response = requests.get(google_url)
+        print(response)
+        if response.status_code != 200:
+            return Response({"status": False, "message": "Invalid Google token"}, status=status.HTTP_400_BAD_REQUEST)
+
+        data = response.json()
+        email = data.get("email")
+        first_name = data.get("given_name", "")
+        last_name = data.get("family_name", "")
+        phone_number = serializer.validated_data.get("phone_number")
+        user_type = serializer.validated_data.get("user_type")
+        country_code = serializer.validated_data.get("country_code")
+
+        if User.user_deleted(phone_number=phone_number):
+            return Response(
+                {"status": False, "phone_number": f"{phone_number} has been used, try another phone_number"}
+            )
+        if User.user_exist(phone_number=phone_number):
+            return Response(
+                {"status": False, "phone_number": f"{phone_number} is associated with another account"}
+            )
+        if User.user_email_deleted(email=email):
+            return Response(
+                {"status": False, "email": f"{email} has been used, try another email"}
+            )
+        if User.user_email_exist(email=email):
+            return Response(
+                {"status": False, "email": f"{email} is associated with another account"}
+            )
+        user = User.objects.create(
+            email=email,
+            phone_number=phone_number,
+            first_name=first_name,
+            last_name=last_name,
+            user_type=user_type,
+            country_code=country_code
+        )
+
+        return Response(
+            {
+                "status": True,
+                "message": "User registered successfully",
+            },
+            status=status.HTTP_201_CREATED,
+        )
+    
+
+class GoogleLoginAPIView(APIView):
+    serializer_class = GoogleSigninSerializer  # reuse for token input
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        access_token = serializer.validated_data["access_token"]
+
+        # Verify Google token
+        google_url = f"https://oauth2.googleapis.com/tokeninfo?id_token={access_token}"
+        response = requests.get(google_url)
+        if response.status_code != 200:
+            return Response({"error": "Invalid Google token"}, status=status.HTTP_400_BAD_REQUEST)
+
+        data = response.json()
+        email = data.get("email")
+
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response({"status": False, "error": "User not found. Please sign up first."}, status=status.HTTP_404_NOT_FOUND)
+
+        refresh = RefreshToken.for_user(user)
+        return Response({
+            "refresh": str(refresh),
+            "access": str(refresh.access_token),
+            "user_type": user.user_type,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "phone_number": user.phone_number,
+            "email": user.email,
+            "country_code": user.country_code
+        }, status=status.HTTP_200_OK)

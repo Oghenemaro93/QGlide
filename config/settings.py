@@ -35,7 +35,7 @@ DEBUG = config("DEBUG", default=False, cast=bool)
 
 ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="IP", cast=Csv())
 
-
+SITE_ID = 1
 # Application definition
 
 INSTALLED_APPS = [
@@ -54,6 +54,27 @@ INSTALLED_APPS = [
     'django_filters',
     'rest_framework',
     'import_export',
+    #allauth apps
+    'django.contrib.sites',
+    'allauth',
+    'allauth.account',
+
+    # Optional -- requires install using `django-allauth[socialaccount]`.
+    'allauth.socialaccount',
+    'allauth.socialaccount.providers.google',
+
+    # dj-rest-auth for API endpoints
+    "rest_framework.authtoken",
+    "dj_rest_auth",
+    "dj_rest_auth.registration",
+]
+
+AUTHENTICATION_BACKENDS = [
+    # Needed to login by username in Django admin, regardless of `allauth`
+    'django.contrib.auth.backends.ModelBackend',
+
+    # `allauth` specific authentication methods, such as login by email
+    'allauth.account.auth_backends.AuthenticationBackend',
 ]
 
 MIDDLEWARE = [
@@ -66,6 +87,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'allauth.account.middleware.AccountMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -178,6 +200,30 @@ STATIC_ROOT = os.path.join(BASE_DIR, "static")
 
 STATICFILES_DIRS = []  # type: ignore
 
+LOGIN_REDIRECT_URL = "/v1/auth/google_auth/"
+LOGOUT_REDIRECT_URL = "/"
+SOCIALACCOUNT_LOGIN_ON_GET = True
+# SOCIALACCOUNT_SIGNUP_ON_GET = True
+
+# -------------------------
+# django-allauth
+# -------------------------
+ACCOUNT_USER_MODEL_USERNAME_FIELD = "email"
+
+ACCOUNT_SIGNUP_FIELDS = ['email', 'first_name', 'last_name']
+ACCOUNT_EMAIL_VERIFICATION = "optional"
+
+# -------------------------
+# dj-rest-auth serializers
+# -------------------------
+REST_AUTH_REGISTER_SERIALIZERS = {
+    "REGISTER_SERIALIZER": "core.serializers.CustomRegisterSerializer",
+}
+
+REST_AUTH_SERIALIZERS = {
+    "LOGIN_SERIALIZER": "core.serializers.CustomLoginSerializer",
+}
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
@@ -200,6 +246,15 @@ SIMPLE_JWT = {
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
 }
+
+# GOOGLE_SSO_CLIENT_ID = '897216835153-b2ppvo0uf1uiiko09rdidc699v89p617.apps.googleusercontent.com'
+# GOOGLE_SSO_PROJECT_ID = 'qglide-472613'
+# GOOGLE_SSO_CLIENT_SECRET = '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'
+
+# GOOGLE_SSO_ALLOWABLE_DOMAINS = ["bd470bcf0fb3.ngrok-free.app"]
+
+
+REST_USE_JWT = True
 
 # CORS
 CORS_ALLOW_ALL_ORIGINS = True
