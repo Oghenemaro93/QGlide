@@ -54,23 +54,23 @@ class UserManager(BaseUserManager):
 
     use_in_migrations = True
 
-    def _create_user(self, phone_number, password, **extra_fields):
-        """Create and save a User with the given phone_number and password."""
-        if not phone_number:
-            raise ValueError("The given phone_number must be set")
-        user = self.model(phone_number=phone_number, **extra_fields)
+    def _create_user(self, email, password, **extra_fields):
+        """Create and save a User with the given email and password."""
+        if not email:
+            raise ValueError("The given email must be set")
+        user = self.model(email=email, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
         return user
 
-    def create_user(self, phone_number, password=None, **extra_fields):
-        """Create and save a regular User with the given phone_number and password."""
+    def create_user(self, email, password=None, **extra_fields):
+        """Create and save a regular User with the given email and password."""
         extra_fields.setdefault("is_staff", False)
         extra_fields.setdefault("is_superuser", False)
-        return self._create_user(phone_number, password, **extra_fields)
+        return self._create_user(email, password, **extra_fields)
 
-    def create_superuser(self, phone_number, password, **extra_fields):
-        """Create and save a SuperUser with the given phone_number and password."""
+    def create_superuser(self, email, password, **extra_fields):
+        """Create and save a SuperUser with the given email and password."""
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
 
@@ -79,7 +79,7 @@ class UserManager(BaseUserManager):
         if extra_fields.get("is_superuser") is not True:
             raise ValueError("Superuser must have is_superuser=True.")
 
-        return self._create_user(phone_number, password, **extra_fields)
+        return self._create_user(email, password, **extra_fields)
     
 class User(AbstractUser, BaseModel):
     """User model."""
@@ -91,7 +91,7 @@ class User(AbstractUser, BaseModel):
 
     username = models.CharField(max_length=255, blank=False, null=True, unique=True)
     # email = models.EmailField(unique=True)
-    phone_number = models.CharField(max_length=255, unique=True)
+    phone_number = models.CharField(max_length=255, null=True, blank=True, unique=True)
     email = models.EmailField(unique=True)
     first_name = models.CharField(max_length=255)
     last_name = models.CharField(max_length=255)
@@ -111,12 +111,12 @@ class User(AbstractUser, BaseModel):
     deleted_at = models.DateTimeField(null=True, blank=True)
     country_code = models.CharField(null=True, blank=True)
 
-    USERNAME_FIELD = "phone_number"
-    # REQUIRED_FIELDS = ["phone_number"]
+    USERNAME_FIELD = "email"
+    REQUIRED_FIELDS = ["phone_number"]
     objects = UserManager()
 
     def __str__(self) -> str:
-        return str(self.phone_number)
+        return str(self.email)
 
     class Meta:
         ordering = ["-created_at"]
