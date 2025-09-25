@@ -63,7 +63,7 @@ class LogEntryAdmin(ImportExportModelAdmin):
 
 class UserResourceAdmin(ImportExportModelAdmin):
     resource_class = resources.UserResource
-    search_fields = ["phone_number", "first_name", "last_name"]
+    search_fields = ["phone_number", "first_name", "last_name", "email"]
     list_filter = ["is_superuser", "is_staff", "terms_and_conditions"]
     list_display = (
         "id",
@@ -75,6 +75,7 @@ class UserResourceAdmin(ImportExportModelAdmin):
         "is_deleted",
         "is_suspended",
         "phone_number",
+        "email",
         "first_name",
         "last_name",
         "referral_code",
@@ -82,6 +83,7 @@ class UserResourceAdmin(ImportExportModelAdmin):
         "terms_and_conditions",
         "referral_code",
         "ip_address",
+        "country_code",
         "created_at",
         "updated_at",
     )
