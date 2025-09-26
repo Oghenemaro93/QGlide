@@ -46,11 +46,13 @@ class RegistrationAPIView(APIView):
         last_name = serializer.validated_data.get("last_name")
         email = serializer.validated_data.get("email")
         print(un_hashed_otp_code)
+        phone_number = serializer.validated_data.get("phone_number")
+        if phone_number is None:
+            del serializer.validated_data["phone_number"]
         del serializer.validated_data["un_hashed_otp_code"]
         serializer.save()
 
         full_name = f"{first_name} {last_name}"
-        phone_number = serializer.validated_data.get("phone_number")
         
         BervorApi.new_user_verify_email(recipient=email, name=full_name, email_verification=un_hashed_otp_code)
         # send_user_welcome_email(email=email, otp_code=un_hashed_otp_code)
