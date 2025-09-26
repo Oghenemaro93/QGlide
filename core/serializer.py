@@ -229,7 +229,7 @@ class RegistrationSerializer(ModelCustomSerializer):
             raise CustomSerializerError(
                 {"status": False, "user_type": "Invalid User Type"}
             )
-        country_code = attrs.get("coountry_code")
+        country_code = attrs.get("country_code")
         if not country_code:
             raise CustomSerializerError(
                 {"status": False, "country_code": "Country Code is Required"}
@@ -243,15 +243,17 @@ class RegistrationSerializer(ModelCustomSerializer):
         confirm_password = attrs.get("confirm_password")
         phone_number = attrs.get("phone_number")
         email = attrs.get("email")
-
-        if User.user_deleted(phone_number=phone_number):
-            raise CustomSerializerError(
-                {"status": False, "phone_number": f"{phone_number} has been used, try another phone_number"}
+        if phone_number:
+            if User.user_deleted(phone_number=phone_number):
+                raise CustomSerializerError(
+                    {"status": False, "phone_number": f"{phone_number} has been used, try another phone_number"}
+                )
+            if User.user_exist(phone_number=phone_number):
+                raise CustomSerializerError(
+                    {"status": False, "phone_number": f"{phone_number} is associated with another account"}
             )
-        if User.user_exist(phone_number=phone_number):
-            raise CustomSerializerError(
-                {"status": False, "phone_number": f"{phone_number} is associated with another account"}
-            )
+            attrs["phone_number"] = phone_number
+            
         if User.user_email_deleted(email=email):
             raise CustomSerializerError(
                 {"status": False, "email": f"{email} has been used, try another email"}
@@ -276,7 +278,6 @@ class RegistrationSerializer(ModelCustomSerializer):
         verification_code = generate_verification_code()
         attrs["otp_code"] = make_password(verification_code)
         attrs["un_hashed_otp_code"] = verification_code
-        attrs["phone_number"] = phone_number
         attrs["is_active"] = True
         return attrs
     
