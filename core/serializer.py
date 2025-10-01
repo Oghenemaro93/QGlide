@@ -139,7 +139,6 @@ class CustomTokenObtainSerializer(TokenObtainPairSerializer):
         #     )
         try:
             user = User.objects.get(email=authenticate_kwargs["email"])
-            authenticate_kwargs["email"] = user.email
 
             if not user.password:
                 self.error_messages["no_password"] = (
@@ -149,7 +148,7 @@ class CustomTokenObtainSerializer(TokenObtainPairSerializer):
                     self.error_messages["no_password"],
                 )
             self.user = authenticate(
-                email=user.email, password=authenticate_kwargs["password"]
+                username=user.email, password=authenticate_kwargs["password"]
             )
             if self.user is None:
                 self.error_messages["no_active_account"] = "invalid login credentials!"
@@ -200,6 +199,12 @@ class CustomTokenObtainSerializer(TokenObtainPairSerializer):
 class RegistrationSerializer(ModelCustomSerializer):
     """Serializers registration requests and creates a new user."""
     confirm_password = serializers.CharField(required=True)
+    password = serializers.CharField(required=True, write_only=True)
+    email = serializers.EmailField(required=True)
+    first_name = serializers.CharField(required=True)
+    last_name = serializers.CharField(required=True)
+    phone_number = serializers.CharField(required=True)
+    country_code = serializers.CharField(required=True)
     class Meta:
         model = User
         fields = (
@@ -218,7 +223,7 @@ class RegistrationSerializer(ModelCustomSerializer):
             "first_name": {"required": True},
             "last_name": {"required": True},
             "phone_number": {"required": True},
-            # "email": {"required": True},
+            "email": {"required": True},
             "user_type": {"required": True},
             "country_code": {"required": True},
         }
@@ -229,10 +234,15 @@ class RegistrationSerializer(ModelCustomSerializer):
             raise CustomSerializerError(
                 {"status": False, "user_type": "Invalid User Type"}
             )
-        country_code = attrs.get("coountry_code")
+        country_code = attrs.get("country_code")
         if not country_code:
             raise CustomSerializerError(
                 {"status": False, "country_code": "Country Code is Required"}
+            )
+        # Require leading '+' and at least 1 digit after
+        if not isinstance(country_code, str) or not country_code.startswith("+") or not country_code[1:].isdigit():
+            raise CustomSerializerError(
+                {"status": False, "country_code": "Country code must start with '+' and contain digits only"}
             )
         constant_data = ConstantTable.constant_table_instance(country_code=country_code)
         if constant_data.allow_registration is False:
@@ -243,6 +253,16 @@ class RegistrationSerializer(ModelCustomSerializer):
         confirm_password = attrs.get("confirm_password")
         phone_number = attrs.get("phone_number")
         email = attrs.get("email")
+
+        # Basic password strength checks
+        if not isinstance(password, str) or len(password) < 8:
+            raise CustomSerializerError(
+                {"status": False, "password": "Password must be at least 8 characters"}
+            )
+        if password.isdigit() or password.isalpha():
+            raise CustomSerializerError(
+                {"status": False, "password": "Password must include letters and numbers"}
+            )
 
         if User.user_deleted(phone_number=phone_number):
             raise CustomSerializerError(
@@ -261,24 +281,47 @@ class RegistrationSerializer(ModelCustomSerializer):
                 {"status": False, "email": f"{email} is associated with another account"}
             )
         
+        # Validate email format
+        from django.core.validators import validate_email
+        from django.core.exceptions import ValidationError
+        try:
+            validate_email(email)
+        except ValidationError:
+            raise CustomSerializerError(
+                {"status": False, "email": "Invalid email format"}
+            )
+        
         if password != confirm_password:
             raise CustomSerializerError(
                 {"status": False, "password": "passwords do not match."}
             )
-        # correct_phone_number = User.format_phone_number(phone_number)
-        # if correct_phone_number is None:
-        #     raise CustomSerializerError(
-        #         {"status": False, "phone_number": "invalid phone number"}
-        #     )
+        correct_phone_number = User.format_phone_number(phone_number)
+        if correct_phone_number is None:
+            raise CustomSerializerError(
+                {"status": False, "phone_number": "invalid phone number"}
+            )
         
         attrs["password"] = make_password(password)
         del attrs["confirm_password"]
         verification_code = generate_verification_code()
         attrs["otp_code"] = make_password(verification_code)
         attrs["un_hashed_otp_code"] = verification_code
-        attrs["phone_number"] = phone_number
+        attrs["phone_number"] = correct_phone_number
         attrs["is_active"] = True
         return attrs
+    
+    def create(self, validated_data):
+        """Create user and return user-friendly errors on unique conflicts."""
+        from django.db import IntegrityError
+        try:
+            return User.objects.create(**validated_data)
+        except IntegrityError as exc:
+            error_text = str(exc)
+            if "core_user_email_key" in error_text:
+                raise CustomSerializerError({"status": False, "email": "Email already exists"})
+            if "core_user_phone_number_key" in error_text:
+                raise CustomSerializerError({"status": False, "phone_number": "Phone number already exists"})
+            raise CustomSerializerError({"status": False, "message": "Could not create user"})
     
     
 class LoginView(TokenObtainPairView):
@@ -289,14 +332,14 @@ class LoginView(TokenObtainPairView):
 
 class VehicleRegistrationSerializer(ModelCustomSerializer):
     """Serializers registration requests and creates a new user vehicle"""
-    vehichle_type = VehiclePrimaryKeyRelatedField(
+    vehicle_type = VehiclePrimaryKeyRelatedField(
         queryset=VehicleSettings.objects.filter(is_active=True)
     )
     class Meta:
         model = VehicleRegistration
         fields = (
             "vehicle_make",
-            "vehichle_type",
+            "vehicle_type",
             "vehicle_model",
             "vehicle_plate_number",
             "vehicle_color",

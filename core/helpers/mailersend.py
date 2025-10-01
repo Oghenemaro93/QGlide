@@ -44,5 +44,5 @@ class MailerSendApi:
         mailer.set_template("0r83ql3omz0lzw1j", mail_body)
         mailer.set_advanced_personalization(personalization, mail_body)
         mailer.set_reply_to(reply_to, mail_body)
-        print(mailer.send(mail_body))
+        mailer.send(mail_body)
         return "EMAIL SENT"

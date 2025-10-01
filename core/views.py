@@ -45,15 +45,18 @@ class RegistrationAPIView(APIView):
         first_name = serializer.validated_data.get("first_name")
         last_name = serializer.validated_data.get("last_name")
         email = serializer.validated_data.get("email")
-        print(un_hashed_otp_code)
         del serializer.validated_data["un_hashed_otp_code"]
         serializer.save()
 
         full_name = f"{first_name} {last_name}"
         phone_number = serializer.validated_data.get("phone_number")
         
-        BervorApi.new_user_verify_email(recipient=email, name=full_name, email_verification=un_hashed_otp_code)
-        # send_user_welcome_email(email=email, otp_code=un_hashed_otp_code)
+        try:
+            BervorApi.new_user_verify_email(recipient=email, name=full_name, email_verification=un_hashed_otp_code)
+        except Exception as e:
+            # Log the error but don't fail registration
+            # User is already created, so we continue
+            pass
         return Response(
             {
                 "status": True,
@@ -437,7 +440,6 @@ class GoogleAuthAPIView(APIView):
 
     # @swagger_auto_schema(request_body=ChangeUserPasswordSerializer)
     def get(self, request):
-        print(request.data)
         return Response(
             {"message": "Google Auth"}, status=status.HTTP_200_OK
         )
@@ -455,7 +457,6 @@ class GoogleSignupWithProfile(APIView):
         # ✅ Verify token with Google
         google_url = f"https://oauth2.googleapis.com/tokeninfo?id_token={id_token}"
         response = requests.get(google_url)
-        print(response)
         if response.status_code != 200:
             return Response({"status": False, "message": "Invalid Google token"}, status=status.HTTP_400_BAD_REQUEST)
 

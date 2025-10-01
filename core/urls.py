@@ -1,7 +1,7 @@
 from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView
 from core import views
-from core.serializer import GoogleLogin, LoginView
+from core.serializer import LoginView
 
 urlpatterns = [
     path("signup/", views.RegistrationAPIView.as_view(), name="account_signup"),

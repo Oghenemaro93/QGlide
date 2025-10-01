@@ -33,7 +33,7 @@ SECRET_KEY = config("SECRET_KEY", default=get_random_secret_key(), cast=str)
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config("DEBUG", default=False, cast=bool)
 
-ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="IP", cast=Csv())
+ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="*", cast=Csv())
 
 SITE_ID = 1
 # Application definition
@@ -257,17 +257,42 @@ SIMPLE_JWT = {
 REST_USE_JWT = True
 
 # CORS
-CORS_ALLOW_ALL_ORIGINS = True
+# Allow credentialed requests from explicit origins (recommended for browsers)
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='', cast=Csv())
 
-CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', cast=Csv())
-CSRF_COOKIE_DOMAIN = config('CSRF_COOKIE_DOMAIN')
+# Fallback for non-browser clients (e.g., Postman) if no origins provided
+if not CORS_ALLOWED_ORIGINS:
+    CORS_ALLOW_ALL_ORIGINS = True
+
+# Common headers used by SPA/frontends
+CORS_ALLOW_HEADERS = list(set((
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+)))
+
+CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default='', cast=Csv())
+CSRF_COOKIE_DOMAIN = config('CSRF_COOKIE_DOMAIN', default='')
 SECURE_SSL_REDIRECT = \
     config('SECURE_SSL_REDIRECT', '0').lower() in ['true', 't', '1']
 if SECURE_SSL_REDIRECT:
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
+# Cloud Run specific settings
+if ENVIRONMENT == "production":
+    # Trust the proxy headers from Cloud Run
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    USE_TLS = True
+
 AUTH_USER_MODEL = 'core.User'
 
-MAILERSEND_API_KEY = config("MAILERSEND_API_KEY")
-MAILERSEND_DOMAIN = config("MAILERSEND_DOMAIN")
-BREVOR_API_KEY = config("BREVOR_API_KEY")
+MAILERSEND_API_KEY = config("MAILERSEND_API_KEY", default="")
+MAILERSEND_DOMAIN = config("MAILERSEND_DOMAIN", default="")
+BREVOR_API_KEY = config("BREVOR_API_KEY", default="")

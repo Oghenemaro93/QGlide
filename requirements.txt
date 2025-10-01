@@ -15,7 +15,7 @@ Django==5.2.4
 django-allauth==65.11.2
 django-cors-headers==4.7.0
 django-filter==25.1
-django-google-sso==9.0.2
+django-google-sso==7.1.0
 django-import-export==4.3.9
 django-redis==6.0.0
 djangorestframework==3.16.0
@@ -26,6 +26,7 @@ email-validator==2.3.0
 google-auth==2.40.3
 google-auth-httplib2==0.2.0
 google-auth-oauthlib==1.2.2
+gunicorn==23.0.0
 haversine==2.9.0
 httplib2==0.31.0
 idna==3.10

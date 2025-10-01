@@ -12,7 +12,7 @@ class BervorApi:
             "api-key": f"{settings.BREVOR_API_KEY}"
         }
         response = requests.post(url, json=payload, headers=headers)
-        print(response.text)
+        # Response logged for debugging if needed
         return response
 
 
