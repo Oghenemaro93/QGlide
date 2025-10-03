@@ -30,7 +30,7 @@ steps:
       - '--max-instances'
       - '10'
       - '--set-env-vars'
-      - 'DATABASE_NAME=qglide_prod,DATABASE_USER=qglide_user,DATABASE_HOST=/cloudsql/qglide-472613:us-central1:qglide-db,DATABASE_PORT=5432,DATABASE_PASSWORD=yyvY^sa:2Xge*#F8,EMAIL_HOST_USER=qglideapp@gmail.com,EMAIL_HOST_PASSWORD=lidtoxqtmntlmjwh,FIREBASE_PROJECT_ID=qglide-firebase'
+      - 'DATABASE_NAME=qglide_prod,DATABASE_USER=qglide_user,DATABASE_HOST=/cloudsql/qglide-472613:us-central1:qglide-db,DATABASE_PORT=5432,DATABASE_PASSWORD=yyvY^sa:2Xge*#F8,EMAIL_HOST_USER=qglideapp@gmail.com,EMAIL_HOST_PASSWORD=lidtoxqtmntlmjwh,FIREBASE_PROJECT_ID=qglide-firebase,DEBUG=False,SECRET_KEY=N5V@k)+-tSwDlM!n+T^SdXOjsTxirHT+xHEau$5+d7iCsH=Q0I,FIREBASE_CREDENTIALS_PATH=/app/qglide.json'
 
 images:
   - 'gcr.io/$PROJECT_ID/qglide-backend:$COMMIT_SHA'
