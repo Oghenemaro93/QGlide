@@ -1,0 +1,18 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // OTP collection rules
+    match /otps/{email} {
+      // Allow read/write for authenticated users
+      allow read, write: if request.auth != null;
+      
+      // Allow read for the specific email (for OTP verification)
+      allow read: if resource.id == request.auth.token.email;
+    }
+    
+    // Default rule: deny all other access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

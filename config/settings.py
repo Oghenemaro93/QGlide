@@ -200,6 +200,10 @@ STATIC_ROOT = os.path.join(BASE_DIR, "static")
 
 STATICFILES_DIRS = []  # type: ignore
 
+# Media files (user uploads)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
 LOGIN_REDIRECT_URL = "/v1/auth/google_auth/"
 LOGOUT_REDIRECT_URL = "/"
 SOCIALACCOUNT_LOGIN_ON_GET = True
@@ -296,3 +300,35 @@ AUTH_USER_MODEL = 'core.User'
 MAILERSEND_API_KEY = config("MAILERSEND_API_KEY", default="")
 MAILERSEND_DOMAIN = config("MAILERSEND_DOMAIN", default="")
 BREVOR_API_KEY = config("BREVOR_API_KEY", default="")
+
+# Gmail SMTP Configuration
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='noreply@qglide.com')
+
+# Firebase Configuration
+FIREBASE_CREDENTIALS_PATH = config('FIREBASE_CREDENTIALS_PATH', default='')
+FIREBASE_PROJECT_ID = config('FIREBASE_PROJECT_ID', default='')
+
+# Initialize Firebase Admin SDK
+try:
+    if FIREBASE_CREDENTIALS_PATH and FIREBASE_PROJECT_ID:
+        import firebase_admin
+        from firebase_admin import credentials
+        
+        cred = credentials.Certificate(FIREBASE_CREDENTIALS_PATH)
+        firebase_admin.initialize_app(cred, {
+            'projectId': FIREBASE_PROJECT_ID,
+        })
+        FIREBASE_INITIALIZED = True
+        LOGGER.info("Firebase Admin SDK initialized successfully")
+    else:
+        FIREBASE_INITIALIZED = False
+        LOGGER.warning("Firebase credentials not provided, Firebase features disabled")
+except Exception as e:
+    FIREBASE_INITIALIZED = False
+    LOGGER.error(f"Firebase initialization failed: {e}")

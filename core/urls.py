@@ -2,6 +2,7 @@ from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView
 from core import views
 from core.serializer import LoginView
+from core import otp_views
 
 urlpatterns = [
     path("signup/", views.RegistrationAPIView.as_view(), name="account_signup"),
@@ -43,4 +44,8 @@ urlpatterns = [
     path("google_auth/",views.GoogleAuthAPIView.as_view(), name="google-auth"),
     path("google/signin/", views.GoogleLoginAPIView.as_view(), name="google_login"),
     path("google/signup/", views.GoogleSignupWithProfile.as_view(), name="google_signup_profile"),
+    # OTP endpoints
+    path("send-otp/", otp_views.send_otp, name="send-otp"),
+    path("verify-otp/", otp_views.verify_otp, name="verify-otp"),
+    path("resend-otp/", otp_views.resend_otp, name="resend-otp"),
 ]

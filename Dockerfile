@@ -6,6 +6,10 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV PORT=8080
 ENV ENVIRONMENT=production
+ENV PIP_ONLY_BINARY=:all:
+ENV GRPC_DNS_RESOLVER=native
+ENV GRPC_ENABLE_FORK_SUPPORT=1
+ENV GRPC_POLL_STRATEGY=epoll1
 
 # Set work directory
 WORKDIR /app
@@ -16,14 +20,23 @@ RUN apt-get update \
         postgresql-client \
         build-essential \
         libpq-dev \
+        git \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
 COPY requirements.txt .
+RUN pip install --upgrade pip setuptools wheel
+RUN pip config set global.index-url https://pypi.org/simple
+RUN pip config set global.trusted-host pypi.org
+RUN pip config set global.trusted-host files.pythonhosted.org
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy project
 COPY . .
+
+# Copy Firebase service account key (if exists)
+# Note: In production, this should be handled via environment variables or secrets
+COPY firebase-service-account.json* /app/
 
 # Collect static files will be done at runtime
 

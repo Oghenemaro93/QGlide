@@ -169,3 +169,7 @@ dump.rdb
 
 #django migrations
 **/migrations/**
+
+# Firebase service account keys
+firebase-service-account.json
+*-firebase-adminsdk-*.jsonqglide-firebase-firebase-adminsdk-fbsvc-8f5d5061ed.json

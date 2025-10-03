@@ -24,13 +24,13 @@ steps:
       - '--port'
       - '8080'
       - '--memory'
-      - '1Gi'
+      - '2Gi'
       - '--cpu'
       - '1'
       - '--max-instances'
       - '10'
       - '--set-env-vars'
-      - 'ENVIRONMENT=production'
+      - 'DATABASE_NAME=qglide_prod,DATABASE_USER=qglide_user,DATABASE_HOST=/cloudsql/qglide-472613:us-central1:qglide-db,DATABASE_PORT=5432,DATABASE_PASSWORD=yyvY^sa:2Xge*#F8,EMAIL_HOST_USER=qglideapp@gmail.com,EMAIL_HOST_PASSWORD=lidtoxqtmntlmjwh,FIREBASE_PROJECT_ID=qglide-firebase'
 
 images:
   - 'gcr.io/$PROJECT_ID/qglide-backend:$COMMIT_SHA'

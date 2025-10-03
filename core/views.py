@@ -52,7 +52,8 @@ class RegistrationAPIView(APIView):
         phone_number = serializer.validated_data.get("phone_number")
         
         try:
-            BervorApi.new_user_verify_email(recipient=email, name=full_name, email_verification=un_hashed_otp_code)
+            from core.helpers.gmail_smtp import GmailSMTP
+            GmailSMTP.send_otp_email(recipient=email, name=full_name, otp_code=un_hashed_otp_code)
         except Exception as e:
             # Log the error but don't fail registration
             # User is already created, so we continue
@@ -334,7 +335,8 @@ class ResendVerificationCodeAPIView(APIView):
         verification_code = generate_verification_code()
         User.hash_otp(otp_code=verification_code, user=user)
         # print(verification_code)
-        BervorApi.new_user_verify_email(recipient=email, name=user.full_name, email_verification=verification_code)
+        from core.helpers.gmail_smtp import GmailSMTP
+        GmailSMTP.send_otp_email(recipient=email, name=user.full_name, otp_code=verification_code)
         return Response(
             {
                 "status": True,
@@ -396,7 +398,8 @@ class ForgotPasswordAPIView(APIView):
         verification_code = generate_verification_code()
         User.hash_otp(otp_code=verification_code, user=user)
         # print(verification_code)
-        BervorApi.new_user_verify_email(recipient=email, name=user.full_name, email_verification=verification_code)
+        from core.helpers.gmail_smtp import GmailSMTP
+        GmailSMTP.send_otp_email(recipient=email, name=user.full_name, otp_code=verification_code)
         return Response(
             {
                 "status": True,

@@ -14,6 +14,7 @@ from dj_rest_auth.registration.views import SocialLoginView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.exceptions import AuthenticationFailed
 from dj_rest_auth.registration.serializers import RegisterSerializer
+from drf_yasg.utils import swagger_auto_schema
 
 from core.helpers.func import (
     generate_verification_code,
@@ -109,7 +110,11 @@ class DriverPrimaryKeyRelatedField(serializers.PrimaryKeyRelatedField):
 
 class CustomTokenObtainSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
+        # Normalize email to avoid case-sensitivity issues during auth
         email = attrs[self.username_field]
+        if isinstance(email, str):
+            email = email.lower()
+            attrs[self.username_field] = email
 
         authenticate_kwargs = {
             self.username_field: email,
@@ -138,7 +143,7 @@ class CustomTokenObtainSerializer(TokenObtainPairSerializer):
         #         {"status": False, "password": f"password must be 6 digits."}
         #     )
         try:
-            user = User.objects.get(email=authenticate_kwargs["email"])
+            user = User.objects.get(email=authenticate_kwargs["email"].lower())
 
             if not user.password:
                 self.error_messages["no_password"] = (
@@ -328,6 +333,21 @@ class LoginView(TokenObtainPairView):
     """Log in a user."""
 
     serializer_class = CustomTokenObtainSerializer
+
+
+class LoginRequestSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=True)
+    password = serializers.CharField(required=True)
+
+
+class LoginView(TokenObtainPairView):
+    """Log in a user."""
+
+    serializer_class = CustomTokenObtainSerializer
+
+    @swagger_auto_schema(request_body=LoginRequestSerializer)
+    def post(self, request, *args, **kwargs):
+        return super().post(request, *args, **kwargs)
 
 
 class VehicleRegistrationSerializer(ModelCustomSerializer):
