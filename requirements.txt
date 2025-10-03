@@ -19,6 +19,7 @@ django-import-export==4.3.9
 django-redis==6.0.0
 djangorestframework==3.16.0
 djangorestframework_simplejwt==5.5.1
+dj-rest-auth
 dnspython==2.8.0
 drf-yasg==1.21.10
 email-validator==2.3.0
