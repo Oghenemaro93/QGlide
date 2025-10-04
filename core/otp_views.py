@@ -12,7 +12,7 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 import logging
 
-from .firebase_service import firebase_service
+# Using existing Django OTP system instead of Firebase
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -87,18 +87,27 @@ def send_otp(request):
                 'message': 'User not found'
             }, status=status.HTTP_404_NOT_FOUND)
         
-        # Generate OTP
-        otp = firebase_service.generate_otp()
+        # Generate OTP using existing Django system
+        from core.helpers.func import generate_verification_code
+        from core.models import User
         
-        # Store OTP
-        if not firebase_service.store_otp(email, otp):
-            return Response({
-                'success': False,
-                'message': 'Failed to generate OTP'
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        otp = generate_verification_code()
         
-        # Send OTP via email
-        if not firebase_service.send_otp_email(email, otp):
+        # Store OTP in user record (existing system)
+        User.hash_otp(otp_code=otp, user=user)
+        
+        # Send OTP via email using existing Gmail SMTP
+        try:
+            from core.helpers.gmail_smtp import GmailSMTP
+            success = GmailSMTP.send_otp_email(recipient=email, name=user.full_name, otp_code=otp)
+            
+            if not success:
+                return Response({
+                    'success': False,
+                    'message': 'Failed to send OTP email'
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception as e:
+            logger.error(f"Failed to send OTP email: {e}")
             return Response({
                 'success': False,
                 'message': 'Failed to send OTP email'
@@ -184,26 +193,17 @@ def verify_otp(request):
                 'message': 'Invalid email format'
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        # Verify OTP
-        result = firebase_service.verify_otp(email, otp)
-        
-        if not result['success']:
+        # Verify OTP using existing Django system
+        valid_otp_code = User.check_otp(user=user, otp_code=otp)
+        if valid_otp_code is False:
             return Response({
                 'success': False,
-                'message': result['message'],
-                'error': result.get('error')
+                'message': 'Invalid OTP'
             }, status=status.HTTP_400_BAD_REQUEST)
         
         # Mark user email as verified
-        try:
-            user = User.objects.get(email=email)
-            user.is_verified = True
-            user.save()
-        except User.DoesNotExist:
-            return Response({
-                'success': False,
-                'message': 'User not found'
-            }, status=status.HTTP_404_NOT_FOUND)
+        user.is_verified = True
+        user.save()
         
         return Response({
             'success': True,
@@ -287,18 +287,26 @@ def resend_otp(request):
                 'message': 'User not found'
             }, status=status.HTTP_404_NOT_FOUND)
         
-        # Generate new OTP
-        otp = firebase_service.generate_otp()
+        # Generate new OTP using existing Django system
+        from core.helpers.func import generate_verification_code
         
-        # Store new OTP
-        if not firebase_service.store_otp(email, otp):
-            return Response({
-                'success': False,
-                'message': 'Failed to generate new OTP'
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        otp = generate_verification_code()
         
-        # Send new OTP via email
-        if not firebase_service.send_otp_email(email, otp):
+        # Store new OTP in user record (existing system)
+        User.hash_otp(otp_code=otp, user=user)
+        
+        # Send new OTP via email using existing Gmail SMTP
+        try:
+            from core.helpers.gmail_smtp import GmailSMTP
+            success = GmailSMTP.send_otp_email(recipient=email, name=user.full_name, otp_code=otp)
+            
+            if not success:
+                return Response({
+                    'success': False,
+                    'message': 'Failed to send OTP email'
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception as e:
+            logger.error(f"Failed to send OTP email: {e}")
             return Response({
                 'success': False,
                 'message': 'Failed to send OTP email'
