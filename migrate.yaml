@@ -1,0 +1,21 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [
+      'run', '--rm', 
+      '-v', '/cloudsql:/cloudsql',
+      '-e', 'DATABASE_NAME=qglide_prod',
+      '-e', 'DATABASE_USER=qglide_user', 
+      '-e', 'DATABASE_HOST=136.115.154.205',
+      '-e', 'DATABASE_PORT=5432',
+      '-e', 'DATABASE_PASSWORD=yyvY^sa:2Xge*#F8',
+      '-e', 'EMAIL_HOST_USER=qglideapp@gmail.com',
+      '-e', 'EMAIL_HOST_PASSWORD=lidtoxqtmntlmjwh',
+      '-e', 'FIREBASE_PROJECT_ID=qglide-firebase',
+      '-e', 'DEBUG=False',
+      '-e', 'SECRET_KEY=N5V@k)+-tSwDlM!n+T^SdXOjsTxirHT+xHEau$5+d7iCsH=Q0I',
+      '-e', 'FIREBASE_CREDENTIALS_PATH=/app/qglide.json',
+      'gcr.io/qglide-472613/qglide-backend:8f1753b4f59ebc1541ec009d68dc8ebf9709ff84', 
+      'python', 'manage.py', 'migrate'
+    ]
+options:
+  logging: CLOUD_LOGGING_ONLY
