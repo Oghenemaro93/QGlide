@@ -194,6 +194,15 @@ def verify_otp(request):
                 'message': 'Invalid email format'
             }, status=status.HTTP_400_BAD_REQUEST)
         
+        # Get user
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response({
+                'success': False,
+                'message': 'User not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
         # Verify OTP using existing Django system
         from django.contrib.auth import get_user_model
         UserModel = get_user_model()
