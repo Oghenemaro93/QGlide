@@ -1,6 +1,7 @@
 from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView
 from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from core import views
@@ -9,7 +10,47 @@ from core import otp_views
 
 
 class TaggedTokenRefreshView(TokenRefreshView):
-    @swagger_auto_schema(tags=['Rider/User'])
+    @swagger_auto_schema(
+        tags=['Rider/User'],
+        operation_summary="Refresh JWT Token",
+        operation_description="Refresh an expired JWT access token using a valid refresh token",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'refresh': openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description='The refresh token'
+                )
+            },
+            required=['refresh']
+        ),
+        responses={
+            200: openapi.Response(
+                description="Token refreshed successfully",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'access': openapi.Schema(
+                            type=openapi.TYPE_STRING,
+                            description='New access token'
+                        )
+                    }
+                )
+            ),
+            401: openapi.Response(
+                description="Invalid refresh token",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'detail': openapi.Schema(
+                            type=openapi.TYPE_STRING,
+                            description='Error message'
+                        )
+                    }
+                )
+            )
+        }
+    )
     def post(self, request, *args, **kwargs):
         return super().post(request, *args, **kwargs)
 

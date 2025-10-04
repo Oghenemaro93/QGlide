@@ -421,16 +421,31 @@ class ForgotPasswordAPIView(APIView):
         
         # Send reset link via email
         from core.helpers.gmail_smtp import GmailSMTP
-        success = GmailSMTP.send_password_reset_email(
-            recipient=email, 
-            name=user.full_name, 
-            reset_link=reset_link
-        )
+        from django.conf import settings
         
-        if not success:
+        # Check if email is configured
+        if not getattr(settings, 'EMAIL_HOST_USER', None) or not getattr(settings, 'EMAIL_HOST_PASSWORD', None):
             return Response(
-                {"status": False, "message": "Failed to send reset email"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                {"status": False, "message": "Email service not configured. Please contact support."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+        
+        try:
+            success = GmailSMTP.send_password_reset_email(
+                recipient=email, 
+                name=user.full_name, 
+                reset_link=reset_link
+            )
+            
+            if not success:
+                return Response(
+                    {"status": False, "message": "Failed to send reset email. Please try again later."},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
+        except Exception as e:
+            return Response(
+                {"status": False, "message": "Email service temporarily unavailable. Please try again later."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
         
         return Response(
