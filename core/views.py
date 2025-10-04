@@ -19,7 +19,6 @@ from core.serializer import ChangeForgotPasswordSerializer, ChangeUserPasswordSe
 from ride.models import Ride
 from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
 import requests
-from dj_rest_auth.registration.views import SocialLoginView
 from rest_framework_simplejwt.tokens import RefreshToken
 # Create your views here.
 

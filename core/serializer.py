@@ -9,11 +9,7 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
-from dj_rest_auth.registration.serializers import SocialLoginSerializer
-from dj_rest_auth.registration.views import SocialLoginView
-from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.exceptions import AuthenticationFailed
-from dj_rest_auth.registration.serializers import RegisterSerializer
 from drf_yasg.utils import swagger_auto_schema
 
 from core.helpers.func import (
@@ -562,21 +558,6 @@ class ChangeUserPasswordSerializer(CustomSerializer):
         return attrs
 
 
-class CustomRegisterSerializer(RegisterSerializer):
-    username = None  # remove username
-    email = serializers.EmailField(required=True)
-
-    def get_cleaned_data(self):
-        return {
-            "email": self.validated_data.get("email", ""),
-            "first_name": self.validated_data.get("first_name", ""),
-            "last_name": self.validated_data.get("last_name", ""),
-        }
-
-
-class CustomSocialLoginSerializer(SocialLoginSerializer):
-    username = None
-    email = serializers.EmailField(required=True)
 
 
 class GoogleSignupSerializer(serializers.Serializer):

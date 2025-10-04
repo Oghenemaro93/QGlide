@@ -63,10 +63,6 @@ INSTALLED_APPS = [
     'allauth.socialaccount',
     'allauth.socialaccount.providers.google',
 
-    # dj-rest-auth for API endpoints
-    "rest_framework.authtoken",
-    "dj_rest_auth",
-    "dj_rest_auth.registration",
 ]
 
 AUTHENTICATION_BACKENDS = [
@@ -217,16 +213,6 @@ ACCOUNT_USER_MODEL_USERNAME_FIELD = "email"
 ACCOUNT_SIGNUP_FIELDS = ['email', 'first_name', 'last_name']
 ACCOUNT_EMAIL_VERIFICATION = "optional"
 
-# -------------------------
-# dj-rest-auth serializers
-# -------------------------
-REST_AUTH_REGISTER_SERIALIZERS = {
-    "REGISTER_SERIALIZER": "core.serializers.CustomRegisterSerializer",
-}
-
-REST_AUTH_SERIALIZERS = {
-    "LOGIN_SERIALIZER": "core.serializers.CustomLoginSerializer",
-}
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -258,7 +244,6 @@ SIMPLE_JWT = {
 # GOOGLE_SSO_ALLOWABLE_DOMAINS = ["bd470bcf0fb3.ngrok-free.app"]
 
 
-REST_USE_JWT = True
 
 # Firebase Configuration
 FIREBASE_CREDENTIALS_PATH = config("FIREBASE_CREDENTIALS_PATH", default="/app/qglide.json")
