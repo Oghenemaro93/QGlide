@@ -9,7 +9,7 @@ from core import otp_views
 
 
 class TaggedTokenRefreshView(TokenRefreshView):
-    @swagger_auto_schema(tags=['Rider/User'], method='post')
+    @swagger_auto_schema(tags=['Rider/User'])
     def post(self, request, *args, **kwargs):
         return super().post(request, *args, **kwargs)
 
