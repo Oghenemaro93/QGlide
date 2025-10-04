@@ -8,6 +8,8 @@ from rest_framework.response import Response
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 import logging
 
 from .firebase_service import firebase_service
@@ -16,6 +18,37 @@ logger = logging.getLogger(__name__)
 User = get_user_model()
 
 
+@swagger_auto_schema(
+    method='post',
+    operation_description="Send OTP to user's email for verification",
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        required=['email'],
+        properties={
+            'email': openapi.Schema(
+                type=openapi.TYPE_STRING,
+                format=openapi.FORMAT_EMAIL,
+                description='User email address',
+                example='user@example.com'
+            ),
+        }
+    ),
+    responses={
+        200: openapi.Response(
+            description="OTP sent successfully",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'success': openapi.Schema(type=openapi.TYPE_BOOLEAN),
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                }
+            )
+        ),
+        400: openapi.Response(description="Bad request - Invalid email or missing email"),
+        404: openapi.Response(description="User not found"),
+        500: openapi.Response(description="Internal server error")
+    }
+)
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def send_otp(request):
@@ -84,6 +117,42 @@ def send_otp(request):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+@swagger_auto_schema(
+    method='post',
+    operation_description="Verify OTP code for email verification",
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        required=['email', 'otp'],
+        properties={
+            'email': openapi.Schema(
+                type=openapi.TYPE_STRING,
+                format=openapi.FORMAT_EMAIL,
+                description='User email address',
+                example='user@example.com'
+            ),
+            'otp': openapi.Schema(
+                type=openapi.TYPE_STRING,
+                description='6-digit OTP code',
+                example='123456'
+            ),
+        }
+    ),
+    responses={
+        200: openapi.Response(
+            description="OTP verified successfully",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'success': openapi.Schema(type=openapi.TYPE_BOOLEAN),
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                }
+            )
+        ),
+        400: openapi.Response(description="Bad request - Invalid OTP, expired, or already used"),
+        404: openapi.Response(description="User not found"),
+        500: openapi.Response(description="Internal server error")
+    }
+)
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def verify_otp(request):
@@ -149,6 +218,37 @@ def verify_otp(request):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+@swagger_auto_schema(
+    method='post',
+    operation_description="Resend OTP to user's email",
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        required=['email'],
+        properties={
+            'email': openapi.Schema(
+                type=openapi.TYPE_STRING,
+                format=openapi.FORMAT_EMAIL,
+                description='User email address',
+                example='user@example.com'
+            ),
+        }
+    ),
+    responses={
+        200: openapi.Response(
+            description="New OTP sent successfully",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'success': openapi.Schema(type=openapi.TYPE_BOOLEAN),
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                }
+            )
+        ),
+        400: openapi.Response(description="Bad request - Invalid email or missing email"),
+        404: openapi.Response(description="User not found"),
+        500: openapi.Response(description="Internal server error")
+    }
+)
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def resend_otp(request):

@@ -260,6 +260,11 @@ SIMPLE_JWT = {
 
 REST_USE_JWT = True
 
+# Firebase Configuration
+FIREBASE_CREDENTIALS_PATH = config("FIREBASE_CREDENTIALS_PATH", default="/app/qglide.json")
+FIREBASE_PROJECT_ID = config("FIREBASE_PROJECT_ID", default="qglide-firebase")
+FIREBASE_INITIALIZED = False
+
 # CORS
 # Allow credentialed requests from explicit origins (recommended for browsers)
 CORS_ALLOW_CREDENTIALS = True
