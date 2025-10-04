@@ -4,8 +4,8 @@ FROM python:3.10-slim
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-# Cache busting - Option 6
-ARG CACHE_BUST=2025-10-04-15:15
+# Cache busting - Force fresh build
+ARG CACHE_BUST=2025-10-04-16:00
 ENV PORT=8080
 ENV ENVIRONMENT=production
 ENV PIP_ONLY_BINARY=:all:
