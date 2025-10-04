@@ -569,30 +569,3 @@ class GoogleSignupSerializer(serializers.Serializer):
 class GoogleSigninSerializer(serializers.Serializer):
     access_token = serializers.CharField(required=True)
 
-
-class GoogleLogin(SocialLoginView):
-    serializer_class = CustomSocialLoginSerializer
-
-    def process_login(self):
-        if not self.user or not self.user.pk:
-            raise AuthenticationFailed("No account found. Please sign up first.")
-        return super().process_login()
-
-    def get_response(self):
-        # Call parent response (user login)
-        response = super().get_response()
-        user = self.user
-
-        # Generate JWT
-        refresh = RefreshToken.for_user(user)
-        response.data.update({
-            "refresh": str(refresh),
-            "access": str(refresh.access_token),
-            "user_type": user.user_type,
-            "first_name": user.first_name,
-            "last_name": user.last_name,
-            "phone_number": user.phone_number,
-            "email": user.email,
-            "country_code": user.country_code
-        })
-        return response
