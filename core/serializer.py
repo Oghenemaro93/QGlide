@@ -496,14 +496,32 @@ class VerificationCodeSerializer(CustomSerializer):
         email = attrs.get("email").lower()
         attrs["email"] = email
         return attrs
-    
+
 
 class UserProfileSerializer(serializers.ModelSerializer):
-    """Serializers update user profile"""
+    """Serializers user profile information"""
+    full_name = serializers.ReadOnlyField()
+    profile_photo_url = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ("email", "first_name", "last_name", "phone_number", "date_of_birth")
+        fields = (
+            "full_name", 
+            "phone_number", 
+            "email", 
+            "date_of_birth", 
+            "profile_photo",
+            "profile_photo_url"
+        )
+
+    def get_profile_photo_url(self, obj):
+        """Return the full URL for the profile photo"""
+        if obj.profile_photo:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.profile_photo.url)
+            return obj.profile_photo.url
+        return None
 
 
 class ForgotPasswordSerializer(CustomSerializer):

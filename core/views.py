@@ -361,7 +361,7 @@ class GetUserProfileAPIView(APIView):
         tags=['Rider/User']
     )
     def get(self, request):
-        serializer = self.serializer_class(request.user)
+        serializer = self.serializer_class(request.user, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
     
 class UpdateUserProfileAPIView(APIView):

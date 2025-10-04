@@ -104,6 +104,7 @@ class User(AbstractUser, BaseModel):
         max_length=255, blank=True, null=True, choices=USER_TYPE, default="USER"
     )
     date_of_birth = models.DateField(null=True, blank=True)
+    profile_photo = models.ImageField(upload_to='media/images/profiles/', null=True, blank=True)
     rating = models.PositiveIntegerField(default=0)
     terms_and_conditions = models.BooleanField(default=True)
     is_verified = models.BooleanField(default=False)

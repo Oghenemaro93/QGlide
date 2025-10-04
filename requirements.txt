@@ -65,6 +65,7 @@ uritemplate==4.2.0
 urllib3==2.5.0
 whitenoise==6.9.0
 win32_setctime==1.2.0
+Pillow==10.4.0
 firebase-admin==7.1.0
 grpcio==1.64.1
 grpcio-status==1.64.1
