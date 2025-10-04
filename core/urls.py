@@ -14,11 +14,6 @@ urlpatterns = [
     path("fetch_vehicle_registration/", views.FetchVehicleRegistrationAPIView.as_view(), name="fetch_vehicle_registration"),
     path("fetch_vehicle_registration_admin/", views.FetchVehicleRegistrationAdminAPIView.as_view(), name="fetch_vehicle_registration_admin"),
     path("verify_email/", views.VerificationAPIView.as_view(), name="verify-email"),
-    path(
-        "send_verification_code/",
-        views.ResendVerificationCodeAPIView.as_view(),
-        name="re-send-verification-code",
-    ),
     path("user_profile/", views.GetUserProfileAPIView.as_view(), name="user-profile"),
         path(
         "update_user_profile/",

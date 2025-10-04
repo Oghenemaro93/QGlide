@@ -475,15 +475,6 @@ class VerificationCodeSerializer(CustomSerializer):
         return attrs
     
 
-class ResendVerificationCodeSerializer(CustomSerializer):
-    email = serializers.EmailField(required=True)
-
-    def validate(self, attrs):
-        email = attrs.get("email").lower()
-        attrs["email"] = email
-        return attrs
-
-
 class UserProfileSerializer(serializers.ModelSerializer):
     """Serializers update user profile"""
 

@@ -242,16 +242,6 @@ class User(AbstractUser, BaseModel):
     def check_otp(cls, user, otp_code):
         return check_password(otp_code, user.otp_code)
 
-    @classmethod
-    def send_verification_code(cls, phone_number):
-        """Generate a random verification code for a user"""
-        this_user = cls.objects.filter(phone_number=phone_number)
-        if this_user:
-            verification_code = generate_verification_code()
-            this_user.update(otp_code=verification_code)
-            return True
-        else:
-            return False
 
     @classmethod
     def is_phone_number_verified(cls, phone_number):

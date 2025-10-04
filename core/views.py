@@ -15,7 +15,7 @@ from core.helpers.func import generate_verification_code
 from core.helpers.mailersend import MailerSendApi
 from core.models import User, VehicleRegistration, VehicleSettings
 from core.permissions import UserIsActive
-from core.serializer import ChangeForgotPasswordSerializer, ChangeUserPasswordSerializer, FetchVehicleRegistrationAdminSerializer, FetchVehicleRegistrationSerializer, FetchVehicleTypeSerializer, ForgotPasswordSerializer, GoogleSigninSerializer, GoogleSignupSerializer, RegistrationSerializer, ResendVerificationCodeSerializer, UserProfileSerializer, VehicleRegistrationSerializer, VerificationCodeSerializer
+from core.serializer import ChangeForgotPasswordSerializer, ChangeUserPasswordSerializer, FetchVehicleRegistrationAdminSerializer, FetchVehicleRegistrationSerializer, FetchVehicleTypeSerializer, ForgotPasswordSerializer, GoogleSigninSerializer, GoogleSignupSerializer, RegistrationSerializer, UserProfileSerializer, VehicleRegistrationSerializer, VerificationCodeSerializer
 from ride.models import Ride
 from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
 import requests
@@ -305,45 +305,6 @@ class VerificationAPIView(APIView):
         )
     
 
-class ResendVerificationCodeAPIView(APIView):
-    """Resend a user verification code."""
-
-    serializer_class = ResendVerificationCodeSerializer
-
-    @swagger_auto_schema(request_body=ResendVerificationCodeSerializer)
-    def post(self, request):
-        """Handle HTTP POST request."""
-        
-        serializer = self.serializer_class(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        email = serializer.validated_data.get("email")
-
-        user = User.user_email_exist(email)
-        if user is None:
-            return Response(
-                {"status": False, "message": "User does not exist"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        if user.is_verified:
-            return Response(
-                {"status": False, "message": "User has already been verified"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        email = serializer.validated_data.get("email")
-        verification_code = generate_verification_code()
-        User.hash_otp(otp_code=verification_code, user=user)
-        # print(verification_code)
-        from core.helpers.gmail_smtp import GmailSMTP
-        GmailSMTP.send_otp_email(recipient=email, name=user.full_name, otp_code=verification_code)
-        return Response(
-            {
-                "status": True,
-                "message": "Verification code has been sent to your email",
-            },
-            status=status.HTTP_201_CREATED,
-        )
 
 
 class GetUserProfileAPIView(APIView):
