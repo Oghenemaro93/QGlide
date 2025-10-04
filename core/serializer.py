@@ -269,22 +269,31 @@ class RegistrationSerializer(ModelCustomSerializer):
                 {"status": False, "password": "Password must include letters and numbers"}
             )
 
-        if User.user_deleted(phone_number=phone_number):
-            raise CustomSerializerError(
-                {"status": False, "phone_number": f"{phone_number} has been used, try another phone_number"}
-            )
-        if User.user_exist(phone_number=phone_number):
-            raise CustomSerializerError(
-                {"status": False, "phone_number": f"{phone_number} is associated with another account"}
-            )
-        if User.user_email_deleted(email=email):
-            raise CustomSerializerError(
-                {"status": False, "email": f"{email} has been used, try another email"}
-            )
-        if User.user_email_exist(email=email):
-            raise CustomSerializerError(
-                {"status": False, "email": f"{email} is associated with another account"}
-            )
+        # Check for existing users (including deleted ones)
+        existing_user_phone = User.user_exist(phone_number=phone_number)
+        if existing_user_phone is not None:
+            # If user exists and is deleted, allow re-registration
+            if existing_user_phone.is_deleted:
+                # User is deleted, allow re-registration by deleting the old record
+                existing_user_phone.delete()
+            else:
+                # User exists and is not deleted, prevent registration
+                raise CustomSerializerError(
+                    {"status": False, "phone_number": f"{phone_number} is associated with another account"}
+                )
+        
+        # Check for existing users by email (including deleted ones)
+        existing_user_email = User.user_email_exist(email=email)
+        if existing_user_email is not None:
+            # If user exists and is deleted, allow re-registration
+            if existing_user_email.is_deleted:
+                # User is deleted, allow re-registration by deleting the old record
+                existing_user_email.delete()
+            else:
+                # User exists and is not deleted, prevent registration
+                raise CustomSerializerError(
+                    {"status": False, "email": f"{email} is associated with another account"}
+                )
         
         # Validate email format
         from django.core.validators import validate_email
