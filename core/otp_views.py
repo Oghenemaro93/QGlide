@@ -89,12 +89,13 @@ def send_otp(request):
         
         # Generate OTP using existing Django system
         from core.helpers.func import generate_verification_code
-        from core.models import User
         
         otp = generate_verification_code()
         
         # Store OTP in user record (existing system)
-        User.hash_otp(otp_code=otp, user=user)
+        from django.contrib.auth import get_user_model
+        UserModel = get_user_model()
+        UserModel.hash_otp(otp_code=otp, user=user)
         
         # Send OTP via email using existing Gmail SMTP
         try:
@@ -194,7 +195,9 @@ def verify_otp(request):
             }, status=status.HTTP_400_BAD_REQUEST)
         
         # Verify OTP using existing Django system
-        valid_otp_code = User.check_otp(user=user, otp_code=otp)
+        from django.contrib.auth import get_user_model
+        UserModel = get_user_model()
+        valid_otp_code = UserModel.check_otp(user=user, otp_code=otp)
         if valid_otp_code is False:
             return Response({
                 'success': False,
@@ -293,7 +296,9 @@ def resend_otp(request):
         otp = generate_verification_code()
         
         # Store new OTP in user record (existing system)
-        User.hash_otp(otp_code=otp, user=user)
+        from django.contrib.auth import get_user_model
+        UserModel = get_user_model()
+        UserModel.hash_otp(otp_code=otp, user=user)
         
         # Send new OTP via email using existing Gmail SMTP
         try:
