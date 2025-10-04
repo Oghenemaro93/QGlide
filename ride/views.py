@@ -23,7 +23,7 @@ class CreateRideAPIView(APIView):
     """Start a Ride."""
 
     serializer_class = CreateRideSerializer
-    @swagger_auto_schema(request_body=CreateRideSerializer)
+    @swagger_auto_schema(request_body=CreateRideSerializer, tags=['Rider/User'])
     def post(self, request):
         """Handle HTTP POST request."""
         serializer = self.serializer_class(data=request.data)
@@ -46,6 +46,8 @@ class CreateRideAPIView(APIView):
 class RideStatusAPIView(APIView):
     permission_classes = [IsAuthenticated, UserIsActive]
     """Start a Ride."""
+    
+    @swagger_auto_schema(tags=['Rider/User'])
     def get(self, request):
         """Handle HTTP POST request."""
         ride_status = Ride.fetch_ride_status(user=request.user)
@@ -76,6 +78,8 @@ class RideStatusAPIView(APIView):
 class FetchUserLocationAPIView(APIView):
     permission_classes = [IsAuthenticated, UserIsActive]
     """Start a Ride."""
+    
+    @swagger_auto_schema(tags=['Driver'])
     def get(self, request):
         """Handle HTTP POST request."""
         user_id = request.query_params.get("user_id")
@@ -123,7 +127,7 @@ class AcceptRideAPIView(APIView):
     """Accept a Ride."""
 
     serializer_class = AcceptRideSerializer
-    @swagger_auto_schema(request_body=AcceptRideSerializer)
+    @swagger_auto_schema(request_body=AcceptRideSerializer, tags=['Driver'])
     def post(self, request):
         """Handle HTTP POST request."""
 
@@ -145,7 +149,7 @@ class CancelRideByUserAPIView(APIView):
     permission_classes = [IsAuthenticated, UserIsActive, CancelUserActiveRide]
 
     serializer_class = CancelUserRideSerializer
-    @swagger_auto_schema(request_body=CancelUserRideSerializer)
+    @swagger_auto_schema(request_body=CancelUserRideSerializer, tags=['Rider/User'])
     def post(self, request):
         """Handle HTTP POST request."""
 
@@ -167,7 +171,7 @@ class CancelRideByRiderAPIView(APIView):
     permission_classes = [IsAuthenticated, UserIsActive, AcceptedRiderActiveRide]
 
     serializer_class = CancelUserRideSerializer
-    @swagger_auto_schema(request_body=CancelUserRideSerializer)
+    @swagger_auto_schema(request_body=CancelUserRideSerializer, tags=['Driver'])
     def post(self, request):
         """Handle HTTP POST request."""
 
@@ -189,7 +193,7 @@ class WaitingRideByRiderAPIView(APIView):
     permission_classes = [IsAuthenticated, UserIsActive, WaitingRiderActiveRide]
 
     serializer_class = WaitingRideSerializer
-    @swagger_auto_schema(request_body=WaitingRideSerializer)
+    @swagger_auto_schema(request_body=WaitingRideSerializer, tags=['Driver'])
     def post(self, request):
         """Handle HTTP POST request."""
 
@@ -211,7 +215,7 @@ class StartRideByRiderAPIView(APIView):
     permission_classes = [IsAuthenticated, UserIsActive, StartRiderActiveRide]
 
     serializer_class = StartRideSerializer
-    @swagger_auto_schema(request_body=StartRideSerializer)
+    @swagger_auto_schema(request_body=StartRideSerializer, tags=['Driver'])
     def post(self, request):
         """Handle HTTP POST request."""
 
@@ -233,7 +237,7 @@ class RideEndByRiderAPIView(APIView):
     permission_classes = [IsAuthenticated, UserIsActive, EndRiderActiveRide]
 
     serializer_class = EndRideSerializer
-    @swagger_auto_schema(request_body=EndRideSerializer)
+    @swagger_auto_schema(request_body=EndRideSerializer, tags=['Driver'])
     def post(self, request):
         """Handle HTTP POST request."""
 
@@ -285,7 +289,7 @@ class CashPaymentByRiderAPIView(APIView):
     permission_classes = [IsAuthenticated, UserIsActive, CashPaymentActiveRide]
 
     serializer_class = CashPaymentSerializer
-    @swagger_auto_schema(request_body=CashPaymentSerializer)
+    @swagger_auto_schema(request_body=CashPaymentSerializer, tags=['Driver'])
     def post(self, request):
         """Handle HTTP POST request."""
 

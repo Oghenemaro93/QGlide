@@ -1,5 +1,6 @@
 from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView
+from drf_yasg.utils import swagger_auto_schema
 from core import views
 from core.serializer import LoginView
 from core import otp_views
@@ -20,7 +21,7 @@ urlpatterns = [
         views.UpdateUserProfileAPIView.as_view(),
         name="update-user-profile",
     ),
-    path("token/refresh/", TokenRefreshView.as_view(), name="token-refresh"),
+    path("token/refresh/", swagger_auto_schema(tags=['Rider/User'])(TokenRefreshView.as_view()), name="token-refresh"),
     path(
         "forgot_password/",
         views.ForgotPasswordAPIView.as_view(),
