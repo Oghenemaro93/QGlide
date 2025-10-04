@@ -15,7 +15,7 @@ from core.helpers.func import generate_verification_code
 from core.helpers.mailersend import MailerSendApi
 from core.models import User, VehicleRegistration, VehicleSettings
 from core.permissions import UserIsActive
-from core.serializer import ChangeForgotPasswordSerializer, ChangeUserPasswordSerializer, DriverLoginRequestSerializer, DriverRegistrationSerializer, DriverSigninSerializer, FetchVehicleRegistrationAdminSerializer, FetchVehicleRegistrationSerializer, FetchVehicleTypeSerializer, ForgotPasswordSerializer, GoogleSigninSerializer, GoogleSignupSerializer, RegistrationSerializer, UserProfileSerializer, VehicleRegistrationSerializer, VerificationCodeSerializer
+from core.serializer import ChangeForgotPasswordSerializer, ChangeUserPasswordSerializer, DriverLoginRequestSerializer, DriverRegistrationSerializer, DriverSigninSerializer, FetchVehicleRegistrationAdminSerializer, FetchVehicleRegistrationSerializer, FetchVehicleTypeSerializer, ForgotPasswordSerializer, GoogleSigninSerializer, GoogleSignupSerializer, RegistrationSerializer, ResetPasswordSerializer, UserProfileSerializer, VehicleRegistrationSerializer, VerificationCodeSerializer
 from ride.models import Ride
 from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
 import requests
@@ -385,7 +385,7 @@ class UpdateUserProfileAPIView(APIView):
 
 
 class ForgotPasswordAPIView(APIView):
-    """Send user forgotten password otp coode"""
+    """Send user forgotten password reset link"""
 
     serializer_class = ForgotPasswordSerializer
     @swagger_auto_schema(
@@ -412,18 +412,30 @@ class ForgotPasswordAPIView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        email = serializer.validated_data.get("email")
-        verification_code = generate_verification_code()
-        User.hash_otp(otp_code=verification_code, user=user)
-        # print(verification_code)
+        # Create password reset token
+        from core.models import PasswordResetToken
+        reset_token = PasswordResetToken.objects.create(user=user)
+        
+        # Generate reset link
+        reset_link = f"{request.build_absolute_uri('/')[:-1]}/reset-password/{reset_token.token}"
+        
+        # Send reset link via email
         from core.helpers.gmail_smtp import GmailSMTP
-        GmailSMTP.send_otp_email(recipient=email, name=user.full_name, otp_code=verification_code)
+        success = GmailSMTP.send_password_reset_email(
+            recipient=email, 
+            name=user.full_name, 
+            reset_link=reset_link
+        )
+        
+        if not success:
+            return Response(
+                {"status": False, "message": "Failed to send reset email"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+        
         return Response(
-            {
-                "status": True,
-                "message": "Verification code has been sent to your email",
-            },
-            status=status.HTTP_201_CREATED,
+            {"status": True, "message": "Password reset link sent to your email"},
+            status=status.HTTP_200_OK,
         )
 
 
@@ -443,6 +455,83 @@ class ChangeForgotPasswordAPIView(APIView):
         return Response(
             {"message": "password changed successful"}, status=status.HTTP_200_OK
         )
+
+
+class ResetPasswordAPIView(APIView):
+    """Reset user password using token from email link."""
+
+    serializer_class = ResetPasswordSerializer
+
+    @swagger_auto_schema(
+        operation_description="Reset Password using token from email",
+        request_body=ResetPasswordSerializer,
+        tags=['Rider/User']
+    )
+    def post(self, request, token):
+        """Handle password reset using token from email link."""
+        try:
+            from core.models import PasswordResetToken
+            
+            # Find the reset token
+            reset_token = PasswordResetToken.objects.get(token=token)
+            
+            # Check if token is valid
+            if not reset_token.is_valid():
+                return Response(
+                    {"status": False, "message": "Invalid or expired reset token"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            
+            # Validate the new password data
+            serializer = self.serializer_class(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            
+            # Update user password
+            password = serializer.validated_data.get("password")
+            reset_token.user.set_password(password)
+            reset_token.user.save()
+            
+            # Mark token as used
+            reset_token.is_used = True
+            reset_token.used_at = timezone.now()
+            reset_token.save()
+            
+            return Response(
+                {"status": True, "message": "Password reset successfully"},
+                status=status.HTTP_200_OK,
+            )
+            
+        except PasswordResetToken.DoesNotExist:
+            return Response(
+                {"status": False, "message": "Invalid reset token"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except Exception as e:
+            return Response(
+                {"status": False, "message": f"Error resetting password: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+
+def reset_password_page(request, token):
+    """Serve the password reset page."""
+    try:
+        from core.models import PasswordResetToken
+        
+        # Check if token exists and is valid
+        reset_token = PasswordResetToken.objects.get(token=token)
+        
+        if not reset_token.is_valid():
+            return render(request, 'reset_password.html', {
+                'error_message': 'This reset link has expired or is invalid. Please request a new password reset.'
+            })
+        
+        return render(request, 'reset_password.html', {'token': token})
+        
+    except PasswordResetToken.DoesNotExist:
+        return render(request, 'reset_password.html', {
+            'error_message': 'Invalid reset link. Please request a new password reset.'
+        })
 
 
 class ChangeUserPasswordAPIView(APIView):

@@ -560,6 +560,33 @@ class ChangeForgotPasswordSerializer(CustomSerializer):
         return attrs
 
 
+class ResetPasswordSerializer(CustomSerializer):
+    """Serializer for password reset using token from email link."""
+    password = serializers.CharField(
+        style={"input_type": "password"}, 
+        write_only=True,
+        min_length=8,
+        error_messages={
+            'min_length': 'Password must be at least 8 characters long.'
+        }
+    )
+    confirm_password = serializers.CharField(
+        style={"input_type": "password"}, 
+        write_only=True
+    )
+
+    def validate(self, attrs):
+        password = attrs.get("password")
+        confirm_password = attrs.get("confirm_password")
+
+        if password != confirm_password:
+            raise CustomSerializerError(
+                {"status": False, "password": "Password and Confirm Password do not match"}
+            )
+
+        return attrs
+
+
 class ChangeUserPasswordSerializer(CustomSerializer):
     old_password = serializers.CharField(
         style={"input_type": "password"}, write_only=True

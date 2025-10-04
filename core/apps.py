@@ -44,7 +44,9 @@ class CoreConfig(AppConfig):
                 
         except ImportError:
             logger.warning("Firebase Admin SDK not installed")
+            from django.conf import settings
             settings.FIREBASE_INITIALIZED = False
         except Exception as e:
             logger.error(f"Failed to initialize Firebase: {e}")
+            from django.conf import settings
             settings.FIREBASE_INITIALIZED = False

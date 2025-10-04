@@ -41,6 +41,11 @@ urlpatterns = [
         name="change-forgot-password",
     ),
     path(
+        "reset_password/<str:token>/",
+        views.ResetPasswordAPIView.as_view(),
+        name="reset-password",
+    ),
+    path(
         "change_password/",
         views.ChangeUserPasswordAPIView.as_view(),
         name="change-user-password",

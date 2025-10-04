@@ -21,7 +21,7 @@ from django.urls import include, path
 from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
 from rest_framework.permissions import AllowAny
-from core.views import GoogleAuthAPIView
+from core.views import GoogleAuthAPIView, reset_password_page
 
 # Swagger-UI.
 schema_view = get_schema_view(
@@ -45,6 +45,7 @@ urlpatterns = [
     path("", schema_view.with_ui("swagger", cache_timeout=0), name="schema-swagger-ui"),
     path("docs/", schema_view.with_ui("redoc", cache_timeout=0), name="schema-redoc"),
     path("admin/", admin.site.urls),
+    path("reset-password/<str:token>/", reset_password_page, name="reset-password-page"),
     path("v1/auth/", include("core.urls")),
     path("v1/driver/", include("core.driver_urls")),
     path("v1/ride/", include("ride.urls")),

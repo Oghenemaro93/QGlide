@@ -3,6 +3,7 @@ import re
 import string
 import time
 import uuid
+import secrets
 
 from django.contrib.auth import authenticate
 from django.contrib.auth.hashers import check_password, make_password
@@ -13,7 +14,7 @@ from django.utils.translation import gettext as _
 
 from core.helpers.func import generate_verification_code
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timedelta
 from django.utils import timezone
 
 
@@ -429,3 +430,30 @@ class VehicleRegistration(BaseModel):
         ordering = ["-created_at"]
         verbose_name = "VEHICLE REGISTRATION"
         verbose_name_plural = "VEHICLE REGISTRATIONS"
+
+
+class PasswordResetToken(BaseModel):
+    """Model to store password reset tokens for forgot password functionality."""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="password_reset_tokens")
+    token = models.CharField(max_length=255, unique=True)
+    expires_at = models.DateTimeField()
+    is_used = models.BooleanField(default=False)
+    used_at = models.DateTimeField(null=True, blank=True)
+    
+    def save(self, *args, **kwargs):
+        if not self.token:
+            self.token = secrets.token_urlsafe(32)
+        if not self.expires_at:
+            self.expires_at = timezone.now() + timedelta(hours=1)  # Token expires in 1 hour
+        super().save(*args, **kwargs)
+    
+    def is_expired(self):
+        return timezone.now() > self.expires_at
+    
+    def is_valid(self):
+        return not self.is_used and not self.is_expired()
+    
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "PASSWORD RESET TOKEN"
+        verbose_name_plural = "PASSWORD RESET TOKENS"
