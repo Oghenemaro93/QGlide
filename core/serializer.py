@@ -105,7 +105,16 @@ class DriverPrimaryKeyRelatedField(serializers.PrimaryKeyRelatedField):
 
 
 class CustomTokenObtainSerializer(TokenObtainPairSerializer):
+    user_type = serializers.CharField(required=True, write_only=True)
+    
     def validate(self, attrs):
+        # Validate user_type
+        user_type = attrs.get("user_type")
+        if user_type not in ["USER", "RIDER"]:
+            raise CustomSerializerError(
+                {"status": False, "user_type": "Invalid User Type. Must be 'USER' or 'RIDER'"}
+            )
+        
         # Normalize email to avoid case-sensitivity issues during auth
         email = attrs[self.username_field]
         if isinstance(email, str):
@@ -140,6 +149,13 @@ class CustomTokenObtainSerializer(TokenObtainPairSerializer):
         #     )
         try:
             user = User.objects.get(email=authenticate_kwargs["email"].lower())
+            
+            # Validate user_type matches the user's actual user_type
+            if user.user_type != user_type:
+                self.error_messages["no_active_account"] = "account does not exist!"
+                raise exceptions.AuthenticationFailed(
+                    self.error_messages["no_active_account"],
+                )
 
             if not user.password:
                 self.error_messages["no_password"] = (
@@ -343,6 +359,13 @@ class LoginView(TokenObtainPairView):
 class LoginRequestSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
     password = serializers.CharField(required=True)
+    user_type = serializers.CharField(required=True)
+
+
+class DriverLoginRequestSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=True)
+    password = serializers.CharField(required=True)
+    user_type = serializers.CharField(required=True)
 
 
 class LoginView(TokenObtainPairView):
@@ -350,7 +373,11 @@ class LoginView(TokenObtainPairView):
 
     serializer_class = CustomTokenObtainSerializer
 
-    @swagger_auto_schema(request_body=LoginRequestSerializer)
+    @swagger_auto_schema(
+        operation_description="User Sign In",
+        request_body=LoginRequestSerializer,
+        tags=['User']
+    )
     def post(self, request, *args, **kwargs):
         return super().post(request, *args, **kwargs)
 
@@ -568,5 +595,191 @@ class GoogleSignupSerializer(serializers.Serializer):
 
 class GoogleSigninSerializer(serializers.Serializer):
     access_token = serializers.CharField(required=True)
+
+
+# Driver-specific serializers
+class DriverRegistrationSerializer(ModelCustomSerializer):
+    """Serializers driver registration requests and creates a new driver."""
+    confirm_password = serializers.CharField(required=True)
+    password = serializers.CharField(required=True, write_only=True)
+    email = serializers.EmailField(required=True)
+    first_name = serializers.CharField(required=True)
+    last_name = serializers.CharField(required=True)
+    phone_number = serializers.CharField(required=True)
+    country_code = serializers.CharField(required=True)
+    
+    class Meta:
+        model = User
+        fields = (
+            "first_name",
+            "last_name",
+            "phone_number",
+            "password",
+            "email",
+            "ip_address",
+            "referral_code",
+            "confirm_password",
+            "user_type",
+            "country_code"
+        )
+        extra_kwargs = {
+            "first_name": {"required": True},
+            "last_name": {"required": True},
+            "phone_number": {"required": True},
+            "email": {"required": True},
+            "country_code": {"required": True},
+        }
+
+    def validate(self, attrs):
+        # Force user_type to be "RIDER" for drivers
+        attrs["user_type"] = "RIDER"
+        
+        country_code = attrs.get("country_code")
+        if not country_code:
+            raise CustomSerializerError(
+                {"status": False, "country_code": "Country Code is Required"}
+            )
+        # Require leading '+' and at least 1 digit after
+        if not isinstance(country_code, str) or not country_code.startswith("+") or not country_code[1:].isdigit():
+            raise CustomSerializerError(
+                {"status": False, "country_code": "Country code must start with '+' and contain digits only"}
+            )
+        constant_data = ConstantTable.constant_table_instance(country_code=country_code)
+        if constant_data.allow_registration is False:
+            raise CustomSerializerError(
+                {"status": False, "country_code": "Registration is not allowed for this country"}
+            )
+
+        phone_number = attrs.get("phone_number")
+        email = attrs.get("email")
+
+        # Check for deleted users by phone number
+        deleted_user_phone = User.user_deleted(phone_number=phone_number)
+        if deleted_user_phone: # If a deleted user with this phone number exists
+            deleted_user_phone.delete() # Delete the old record to allow re-registration
+
+        # Check for existing users (including newly re-registered ones)
+        existing_user_phone = User.user_exist(phone_number=phone_number)
+        if existing_user_phone:
+            raise CustomSerializerError(
+                {"status": False, "phone_number": f"{phone_number} is associated with another account"}
+            )
+
+        # Check for deleted users by email
+        deleted_user_email = User.user_email_deleted(email=email)
+        if deleted_user_email: # If a deleted user with this email exists
+            deleted_user_email.delete() # Delete the old record to allow re-registration
+
+        # Check for existing users by email (including newly re-registered ones)
+        existing_user_email = User.user_email_exist(email=email)
+        if existing_user_email:
+            raise CustomSerializerError(
+                {"status": False, "email": f"{email} is associated with another account"}
+            )
+
+        if attrs.get("password") != attrs.get("confirm_password"):
+            raise CustomSerializerError(
+                {"status": False, "password": "Password and Confirm Password does not match"}
+            )
+        return attrs
+
+    def create(self, validated_data):
+        validated_data.pop("confirm_password")
+        user = User.objects.create_user(**validated_data)
+        return user
+
+
+class DriverSigninSerializer(TokenObtainPairSerializer):
+    """Driver-specific signin serializer."""
+    user_type = serializers.CharField(required=True, write_only=True)
+    
+    def validate(self, attrs):
+        # Validate user_type is RIDER for drivers
+        user_type = attrs.get("user_type")
+        if user_type != "RIDER":
+            raise CustomSerializerError(
+                {"status": False, "user_type": "Invalid User Type. Must be 'RIDER' for driver login"}
+            )
+        
+        # Normalize email to avoid case-sensitivity issues during auth
+        email = attrs[self.username_field]
+        if isinstance(email, str):
+            email = email.lower()
+            attrs[self.username_field] = email
+
+        authenticate_kwargs = {
+            self.username_field: email,
+            "password": attrs["password"],
+        }
+        try:
+            authenticate_kwargs["request"] = self.context["request"]
+            authenticate_kwargs["email"] = authenticate_kwargs["email"]
+        except KeyError:
+            pass
+
+        try:
+            user = User.objects.get(email=authenticate_kwargs["email"].lower())
+            
+            # Validate user_type matches the user's actual user_type (must be RIDER)
+            if user.user_type != "RIDER":
+                self.error_messages["no_active_account"] = "account does not exist!"
+                raise exceptions.AuthenticationFailed(
+                    self.error_messages["no_active_account"],
+                )
+
+            if not user.password:
+                self.error_messages["no_password"] = (
+                    "please create a password for login!"
+                )
+                raise exceptions.AuthenticationFailed(
+                    self.error_messages["no_password"],
+                )
+            self.user = authenticate(
+                username=user.email, password=authenticate_kwargs["password"]
+            )
+            if self.user is None:
+                self.error_messages["no_active_account"] = "invalid login credentials!"
+                raise exceptions.AuthenticationFailed(
+                    self.error_messages["no_active_account"],
+                )
+
+            if user.is_deleted is True:
+                self.error_messages["error"] = "account does not exist!"
+                raise exceptions.AuthenticationFailed(self.error_messages["error"])
+
+            if user.is_suspended is True:
+                self.error_messages["error"] = "account suspended! contact admin."
+                raise exceptions.AuthenticationFailed(self.error_messages["error"])
+
+            if user.is_verified is False:
+                self.error_messages["error"] = (
+                    "please verify your account!"
+                )
+                raise exceptions.AuthenticationFailed(self.error_messages["error"])
+
+            if user.is_active is False:
+                self.error_messages["error"] = "account disabled! contact admin."
+                raise exceptions.AuthenticationFailed(self.error_messages["error"])
+
+        except User.DoesNotExist:
+            self.error_messages["no_active_account"] = "account does not exist!"
+            raise exceptions.AuthenticationFailed(
+                self.error_messages["no_active_account"],
+            )
+
+        update_last_login(None, user)
+        all_data = super().validate(attrs)
+
+        this_user = {
+            "access": all_data["access"],
+            "refresh": all_data["refresh"],
+            "user_type": user.user_type,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "phone_number": user.phone_number,
+            "email": user.email,
+            "country_code": user.country_code
+        }
+        return this_user
 
 # Force rebuild

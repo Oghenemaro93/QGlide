@@ -15,11 +15,12 @@ from core.helpers.func import generate_verification_code
 from core.helpers.mailersend import MailerSendApi
 from core.models import User, VehicleRegistration, VehicleSettings
 from core.permissions import UserIsActive
-from core.serializer import ChangeForgotPasswordSerializer, ChangeUserPasswordSerializer, FetchVehicleRegistrationAdminSerializer, FetchVehicleRegistrationSerializer, FetchVehicleTypeSerializer, ForgotPasswordSerializer, GoogleSigninSerializer, GoogleSignupSerializer, RegistrationSerializer, UserProfileSerializer, VehicleRegistrationSerializer, VerificationCodeSerializer
+from core.serializer import ChangeForgotPasswordSerializer, ChangeUserPasswordSerializer, DriverLoginRequestSerializer, DriverRegistrationSerializer, DriverSigninSerializer, FetchVehicleRegistrationAdminSerializer, FetchVehicleRegistrationSerializer, FetchVehicleTypeSerializer, ForgotPasswordSerializer, GoogleSigninSerializer, GoogleSignupSerializer, RegistrationSerializer, UserProfileSerializer, VehicleRegistrationSerializer, VerificationCodeSerializer
 from ride.models import Ride
 from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
 import requests
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.views import TokenObtainPairView
 # Create your views here.
 
 
@@ -34,7 +35,11 @@ class RegistrationAPIView(APIView):
     """Register a new user."""
     serializer_class = RegistrationSerializer
 
-    @swagger_auto_schema(request_body=RegistrationSerializer)
+    @swagger_auto_schema(
+        operation_description="User Registration",
+        request_body=RegistrationSerializer,
+        tags=['User']
+    )
     def post(self, request):
         """Handle HTTP POST request."""
 
@@ -499,3 +504,58 @@ class GoogleLoginAPIView(APIView):
             "email": user.email,
             "country_code": user.country_code
         }, status=status.HTTP_200_OK)
+
+
+# Driver-specific views
+class DriverRegistrationAPIView(APIView):
+    """Register a new driver."""
+    serializer_class = DriverRegistrationSerializer
+
+    @swagger_auto_schema(
+        operation_description="Driver Registration",
+        request_body=DriverRegistrationSerializer,
+        responses={
+            201: DriverRegistrationSerializer,
+            400: "Bad Request"
+        },
+        tags=['Driver']
+    )
+    def post(self, request):
+        """Handle HTTP POST request for driver registration."""
+
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        un_hashed_otp_code = serializer.validated_data.get("un_hashed_otp_code")
+        first_name = serializer.validated_data.get("first_name")
+        last_name = serializer.validated_data.get("last_name")
+        email = serializer.validated_data.get("email")
+        del serializer.validated_data["un_hashed_otp_code"]
+        serializer.save()
+
+        full_name = f"{first_name} {last_name}"
+        message = f"Hi {full_name}, your driver account has been created successfully. Please verify your account with the OTP sent to your email."
+
+        return Response({
+            "status": True,
+            "message": message,
+            "data": serializer.data
+        }, status=status.HTTP_201_CREATED)
+
+
+class DriverSigninView(TokenObtainPairView):
+    """Driver signin view."""
+    
+    serializer_class = DriverSigninSerializer
+
+    @swagger_auto_schema(
+        operation_description="Driver Sign In",
+        request_body=DriverLoginRequestSerializer,
+        responses={
+            200: "Login successful",
+            400: "Bad Request",
+            401: "Unauthorized"
+        },
+        tags=['Driver']
+    )
+    def post(self, request, *args, **kwargs):
+        return super().post(request, *args, **kwargs)
