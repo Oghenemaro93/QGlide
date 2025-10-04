@@ -1,9 +1,17 @@
 from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView
 from drf_yasg.utils import swagger_auto_schema
+from rest_framework.views import APIView
+from rest_framework.response import Response
 from core import views
 from core.serializer import LoginView
 from core import otp_views
+
+
+class TaggedTokenRefreshView(TokenRefreshView):
+    @swagger_auto_schema(tags=['Rider/User'])
+    def post(self, request, *args, **kwargs):
+        return super().post(request, *args, **kwargs)
 
 urlpatterns = [
     path("signup/", views.RegistrationAPIView.as_view(), name="account_signup"),
@@ -21,7 +29,7 @@ urlpatterns = [
         views.UpdateUserProfileAPIView.as_view(),
         name="update-user-profile",
     ),
-    path("token/refresh/", swagger_auto_schema(tags=['Rider/User'])(TokenRefreshView.as_view()), name="token-refresh"),
+    path("token/refresh/", TaggedTokenRefreshView.as_view(), name="token-refresh"),
     path(
         "forgot_password/",
         views.ForgotPasswordAPIView.as_view(),
