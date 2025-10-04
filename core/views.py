@@ -38,7 +38,7 @@ class RegistrationAPIView(APIView):
     @swagger_auto_schema(
         operation_description="User Registration",
         request_body=RegistrationSerializer,
-        tags=['User']
+        tags=['Rider/User']
     )
     def post(self, request):
         """Handle HTTP POST request."""
@@ -76,7 +76,11 @@ class VehicleRegistrationAPIView(APIView):
     permission_classes = [IsAuthenticated, UserIsActive]
     serializer_class = VehicleRegistrationSerializer
 
-    @swagger_auto_schema(request_body=VehicleRegistrationSerializer)
+    @swagger_auto_schema(
+        operation_description="Register Vehicle",
+        request_body=VehicleRegistrationSerializer,
+        tags=['Rider/User']
+    )
     def post(self, request):
         """Handle HTTP POST request."""
 
@@ -105,6 +109,13 @@ class FetchVehicleTypeAPIView(generics.ListAPIView):
     filter_backends = (DjangoFilterBackend, filters.SearchFilter)
     
     search_fields = ("name",)
+
+    @swagger_auto_schema(
+        operation_description="Fetch Vehicle Types",
+        tags=['Rider/User']
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
 
     def get_queryset(self):
 
@@ -136,6 +147,13 @@ class FetchVehicleTypeAdminAPIView(generics.ListAPIView):
     filterset_fields = ("is_active",)
     search_fields = ("name",)
 
+    @swagger_auto_schema(
+        operation_description="Fetch Vehicle Types (Admin)",
+        tags=['Admin']
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
+
     def get_queryset(self):
 
         all_vehicle_type = VehicleSettings.objects.all()
@@ -164,6 +182,13 @@ class FetchVehicleRegistrationAPIView(generics.ListAPIView):
     filter_backends = (DjangoFilterBackend, filters.SearchFilter)
     
     search_fields = ("name",)
+
+    @swagger_auto_schema(
+        operation_description="Fetch Vehicle Registrations",
+        tags=['Rider/User']
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
 
     def get_queryset(self):
 
@@ -195,6 +220,13 @@ class FetchVehicleRegistrationAdminAPIView(generics.ListAPIView):
     filterset_fields = ("is_active", "is_deleted", "is_approved", "vehichle_type__name")
     search_fields = ("vehichle_type__name", "user__phone", "vehicle_make", "vehicle_model", "vehicle_plate_number")
 
+    @swagger_auto_schema(
+        operation_description="Fetch Vehicle Registrations (Admin)",
+        tags=['Admin']
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
+
     def get_queryset(self):
 
         all_vehicle_registration = VehicleRegistration.objects.all()
@@ -217,6 +249,11 @@ class FetchVehicleRegistrationAdminAPIView(generics.ListAPIView):
 
 class VerifyUserAPIView(APIView):
     permission_classes = [IsAuthenticated, UserIsActive]
+    
+    @swagger_auto_schema(
+        operation_description="Verify User Token",
+        tags=['Rider/User']
+    )
     def get(self, request):
 
         user = request.user
@@ -275,7 +312,11 @@ class VerificationAPIView(APIView):
 
     serializer_class = VerificationCodeSerializer
 
-    @swagger_auto_schema(request_body=VerificationCodeSerializer)
+    @swagger_auto_schema(
+        operation_description="Verify Email with OTP",
+        request_body=VerificationCodeSerializer,
+        tags=['Rider/User']
+    )
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -315,6 +356,10 @@ class GetUserProfileAPIView(APIView):
     permission_classes = [IsAuthenticated, UserIsActive]
     serializer_class = UserProfileSerializer
 
+    @swagger_auto_schema(
+        operation_description="Get User Profile",
+        tags=['Rider/User']
+    )
     def get(self, request):
         serializer = self.serializer_class(request.user)
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -323,7 +368,11 @@ class UpdateUserProfileAPIView(APIView):
     permission_classes = [IsAuthenticated, UserIsActive]
     serializer_class = UserProfileSerializer
 
-    @swagger_auto_schema(request_body=UserProfileSerializer)
+    @swagger_auto_schema(
+        operation_description="Update User Profile",
+        request_body=UserProfileSerializer,
+        tags=['Rider/User']
+    )
     def put(self, request):
         serializer = self.serializer_class(
             request.user, data=request.data, partial=True
@@ -339,7 +388,11 @@ class ForgotPasswordAPIView(APIView):
     """Send user forgotten password otp coode"""
 
     serializer_class = ForgotPasswordSerializer
-    @swagger_auto_schema(request_body=ForgotPasswordSerializer)
+    @swagger_auto_schema(
+        operation_description="Forgot Password",
+        request_body=ForgotPasswordSerializer,
+        tags=['Rider/User']
+    )
     def post(self, request):
         """Handle HTTP POST request."""
         serializer = self.serializer_class(data=request.data)
@@ -379,7 +432,11 @@ class ChangeForgotPasswordAPIView(APIView):
 
     serializer_class = ChangeForgotPasswordSerializer
 
-    @swagger_auto_schema(request_body=ChangeForgotPasswordSerializer)
+    @swagger_auto_schema(
+        operation_description="Change Forgot Password",
+        request_body=ChangeForgotPasswordSerializer,
+        tags=['Rider/User']
+    )
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -392,7 +449,11 @@ class ChangeUserPasswordAPIView(APIView):
     permission_classes = [IsAuthenticated, UserIsActive]
     serializer_class = ChangeUserPasswordSerializer
 
-    @swagger_auto_schema(request_body=ChangeUserPasswordSerializer)
+    @swagger_auto_schema(
+        operation_description="Change User Password",
+        request_body=ChangeUserPasswordSerializer,
+        tags=['Rider/User']
+    )
     def put(self, request):
         serializer = self.serializer_class(
             data=request.data, context={"user": request.user}
@@ -406,7 +467,10 @@ class ChangeUserPasswordAPIView(APIView):
 class GoogleAuthAPIView(APIView):
     # serializer_class = ChangeUserPasswordSerializer
 
-    # @swagger_auto_schema(request_body=ChangeUserPasswordSerializer)
+    @swagger_auto_schema(
+        operation_description="Google Auth Info",
+        tags=['Rider/User']
+    )
     def get(self, request):
         return Response(
             {"message": "Google Auth"}, status=status.HTTP_200_OK
@@ -416,7 +480,12 @@ class GoogleAuthAPIView(APIView):
 class GoogleSignupWithProfile(APIView):
 
     serializer_class = GoogleSignupSerializer
-    # @swagger_auto_schema(request_body=GoogleSignupSerializer)
+    
+    @swagger_auto_schema(
+        operation_description="Google Signup with Profile",
+        request_body=GoogleSignupSerializer,
+        tags=['Rider/User']
+    )
     def post(self, request, *args, **kwargs):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -473,6 +542,11 @@ class GoogleSignupWithProfile(APIView):
 class GoogleLoginAPIView(APIView):
     serializer_class = GoogleSigninSerializer  # reuse for token input
 
+    @swagger_auto_schema(
+        operation_description="Google Sign In",
+        request_body=GoogleSigninSerializer,
+        tags=['Rider/User']
+    )
     def post(self, request, *args, **kwargs):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)

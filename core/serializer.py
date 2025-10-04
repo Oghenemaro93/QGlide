@@ -376,7 +376,7 @@ class LoginView(TokenObtainPairView):
     @swagger_auto_schema(
         operation_description="User Sign In",
         request_body=LoginRequestSerializer,
-        tags=['User']
+        tags=['Rider/User']
     )
     def post(self, request, *args, **kwargs):
         return super().post(request, *args, **kwargs)

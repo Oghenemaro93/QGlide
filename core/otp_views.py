@@ -21,6 +21,7 @@ User = get_user_model()
 @swagger_auto_schema(
     method='post',
     operation_description="Send OTP to user's email for verification",
+    tags=['Rider/User'],
     request_body=openapi.Schema(
         type=openapi.TYPE_OBJECT,
         required=['email'],
@@ -130,6 +131,7 @@ def send_otp(request):
 @swagger_auto_schema(
     method='post',
     operation_description="Verify OTP code for email verification",
+    tags=['Rider/User'],
     request_body=openapi.Schema(
         type=openapi.TYPE_OBJECT,
         required=['email', 'otp'],
@@ -233,6 +235,7 @@ def verify_otp(request):
 @swagger_auto_schema(
     method='post',
     operation_description="Resend OTP to user's email",
+    tags=['Rider/User'],
     request_body=openapi.Schema(
         type=openapi.TYPE_OBJECT,
         required=['email'],
